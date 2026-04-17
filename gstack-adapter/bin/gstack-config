@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# gstack-config — 配置管理适配器
+# 模拟gstack-config接口，使用环境变量和默认值
+set -eo pipefail
+
+# 获取默认值
+get_default() {
+  case "$1" in
+    proactive) echo "true" ;;
+    telemetry) echo "off" ;;
+    skill_prefix) echo "false" ;;
+    routing_declined) echo "false" ;;
+    auto_upgrade) echo "false" ;;
+    update_check) echo "true" ;;
+    *) echo "" ;;
+  esac
+}
+
+# 列出所有默认配置键
+list_keys() {
+  echo "proactive"
+  echo "telemetry"
+  echo "skill_prefix"
+  echo "routing_declined"
+  echo "auto_upgrade"
+  echo "update_check"
+}
+
+case "${1:-}" in
+  get)
+    KEY="${2:-}"
+    if [[ -z "$KEY" ]]; then
+      echo "Usage: gstack-config get <key>" >&2
+      exit 1
+    fi
+    # 环境变量优先，然后默认值
+    ENV_VAR="GSTACK_$(echo "$KEY" | tr '[:lower:]' '[:upper:]')"
+    if [[ -n "${!ENV_VAR:-}" ]]; then
+      echo "${!ENV_VAR}"
+    else
+      get_default "$KEY"
+    fi
+    ;;
+  set)
+    KEY="${2:-}"
+    VALUE="${3:-}"
+    if [[ -z "$KEY" ]]; then
+      echo "Usage: gstack-config set <key> <value>" >&2
+      exit 1
+    fi
+    # 在superpowers模式下，set只输出提示
+    ENV_VAR="GSTACK_$(echo "$KEY" | tr '[:lower:]' '[:upper:]')"
+    echo "Note: superpowers adapter does not persist config. Set $ENV_VAR=$VALUE in environment."
+    ;;
+  list)
+    echo "# gstack-config (superpowers adapter)"
+    for key in $(list_keys); do
+      ENV_VAR="GSTACK_$(echo "$key" | tr '[:lower:]' '[:upper:]')"
+      VALUE="${!ENV_VAR:-$(get_default "$key")}"
+      echo "$key: $VALUE"
+    done
+    ;;
+  *)
+    echo "Usage: gstack-config {get|set|list}" >&2
+    exit 1
+    ;;
+esac
