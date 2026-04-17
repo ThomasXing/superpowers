@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")
+SLUG=$(basename "$REPO_ROOT" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+echo "SLUG=$SLUG"
+echo "GSTACK_HOME=\${GSTACK_HOME:-\$HOME/.superpowers}"

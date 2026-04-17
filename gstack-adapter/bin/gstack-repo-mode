@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")
+CONTRIBUTORS=$(git shortlog -sne HEAD 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$CONTRIBUTORS" -le 1 ]]; then
+  REPO_MODE="solo"
+else
+  REPO_MODE="collaborative"
+fi
+REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
+if [[ -z "$REMOTE_URL" ]]; then
+  REPO_MODE="local"
+fi
+echo "REPO_MODE=$REPO_MODE"
+echo "REPO_ROOT=$REPO_ROOT"
