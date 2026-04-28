@@ -41,82 +41,32 @@ description: Use when analyzing development cycles for experience summarization,
 - **工作流模式识别**: 识别高效的工作流程和协作模式
 - **问题模式识别**: 识别重复出现的问题和解决方案模式
 
-## 脚本库集成使用（推荐）
+## Git 提交集成
 
-**底层逻辑**：标准化GitLab操作，统一错误处理，提升可维护性。
+**底层逻辑**：经验总结归档到仓库知识库，利用 Git 历史沉淀、追溯每次更新。
 
-### 脚本库位置
-```
-scripts/
-├── gitlab/                    # GitLab核心库
-│   ├── common.sh             # 公共函数：环境检查、路径处理、配置管理
-│   ├── auth.sh               # 认证管理：登录、验证、令牌管理
-│   └── wiki.sh               # Wiki操作：创建、更新、查看、删除
-└── document/                 # 文档技能封装
-    ├── document-compound-wrapper.sh  # 经验总结管理封装（推荐使用）
-    ├── init.sh               # 文档库初始化
-    └── *.sh                  # 其他技能封装脚本
-```
-
-### 推荐使用方式
 ```bash
-# 方式1：直接调用封装脚本（最推荐）
-./scripts/document/document-compound-wrapper.sh generate "数据库连接池优化经验" "经验内容" v1.0.0 knowledge-base/compound
+# 生成经验总结后归档到知识库
+KB_PATH="docs/knowledge-base/compound"
 
-# 方式2：在技能中引用脚本库
-source scripts/gitlab/common.sh
-source scripts/gitlab/auth.sh
-source scripts/gitlab/wiki.sh
-source scripts/document/document-compound-wrapper.sh
-
-# 然后调用封装函数
-init_document-compound
-generate_compound "数据库连接池优化经验" "经验内容" v1.0.0 "knowledge-base/compound"
+# 提交经验总结
+git add "$KB_PATH/"
+git commit -m "docs(compound): add experience - <主题名称>"
+git push
 ```
 
-### 脚本库核心函数
-- `check_glab_installed()` - GitLab CLI环境检查（从common.sh）
-- `check_auth_status()` - 认证状态检查（从auth.sh）
-- `glab_auth_interactive()` - 交互式GitLab认证（从auth.sh）
-- `wiki_create()` - 创建或更新Wiki页面（从wiki.sh）
-- `wiki_view()` - 查看Wiki页面（从wiki.sh）
-- `wiki_list()` - 列出Wiki页面（从wiki.sh）
-- `init_document-compound()` - 经验总结技能初始化（从wrapper）
-- `generate_compound()` - 生成经验总结（从wrapper）
-- `view_compound()` - 查看经验总结（从wrapper）
-- `list_compound()` - 列出经验总结（从wrapper）
-
-### document-compound专用封装脚本
-`scripts/document/document-compound-wrapper.sh` 提供以下命令：
+### 与月度开发周期关联
 ```bash
-# 初始化技能
-./scripts/document/document-compound-wrapper.sh init
+# 归档指定周期的所有文档
+PLAN_PATH="docs/monthly/$(get_active_plan)"
 
-# 生成经验总结
-./scripts/document/document-compound-wrapper.sh generate <标题> [内容] [版本] [路径]
+# 生成经验总结（基于周期内所有文档）
+# AI 读取 $PLAN_PATH 下所有子目录后写入 $KB_PATH/
 
-# 查看经验总结
-./scripts/document/document-compound-wrapper.sh view <标题> [路径]
-
-# 列出经验总结
-./scripts/document/document-compound-wrapper.sh list [路径]
-
-# 显示帮助
-./scripts/document/document-compound-wrapper.sh help
+git add "docs/knowledge-base/"
+git commit -m "docs(compound): summarize cycle - $(get_active_plan)"
+git push
 ```
-
-### 向后兼容说明
-- **旧方式**：手动执行GitLab命令（已过时）
-- **新方式**：调用脚本库函数（推荐）
-- **兼容层**：脚本库内部仍使用glab，但提供统一接口和更好的错误处理
-- **路径兼容**：相对路径 `scripts/document/document-compound-wrapper.sh`
-
-**优势**：
-1. **标准化操作**：所有GitLab操作通过统一接口
-2. **更好的错误处理**：脚本库提供详细的错误信息和恢复建议
-3. **可维护性**：集中管理GitLab API调用逻辑
-4. **可测试性**：独立的脚本便于单元测试和集成测试
-5. **跨技能复用**：其他document技能可复用相同逻辑
 
 ## 经验沉淀闭环
 
@@ -375,6 +325,6 @@ digraph knowledge_cycle {
 **子智能体标识**: document-compound-agent  
 **版本**: 2.0.0  
 **创建时间**: 2026-04-22  
-**依赖**: 其他document技能文档数据、GitLab CLI、superpowers脚本库  
-**状态**: 开发中  
+**依赖**: Git、其他 document 技能文档数据  
+**状态**: 就绪  
 **owner**: 知识管理负责人/技术负责人

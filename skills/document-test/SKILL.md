@@ -64,10 +64,17 @@ digraph tdd_integration {
 - **功能**: 生成测试执行报告
 - **数据**: 测试通过率、缺陷统计、风险评估
 
-### 4. 文档上传管理
-- **格式**: `/document-test 上传`
-- **功能**: 上传测试文档到GitLab Wiki
-- **目录**: 上传到`test/`相关目录
+### 4. 文档提交管理
+- **格式**: `/document-test 提交`
+- **功能**: 将测试文档提交到仓库 `docs/monthly/<活跃计划>/test/` 对应子目录
+- **版本关联**: Git 历史自动关联测试文档与设计文档版本
+- **命令示例**:
+  ```bash
+  TEST_PATH="docs/monthly/$(get_active_plan)/test"
+  git add "$TEST_PATH/"
+  git commit -m "docs(test): add testcases - <功能名称>"
+  git push
+  ```
 
 ## 使用说明
 
@@ -82,8 +89,8 @@ digraph tdd_integration {
 # 生成测试报告
 /document-test 报告 "用户模块测试结果"
 
-# 上传文档
-/document-test 上传
+# 提交文档
+/document-test 提交
 ```
 
 ### 空格格式（兼容）
@@ -182,92 +189,21 @@ digraph tdd_integration {
 - **质量趋势分析**: 分析测试通过率和缺陷趋势
 - **改进建议生成**: 基于测试结果生成质量改进建议
 
-### 与GitLab集成
+### Git 提交集成
 ```bash
-# 上传测试用例到Wiki（旧方式，已过时）
-glab repo wiki create "test/testcases/test-scenario.md" --content "测试用例内容"
+# 生成测试用例后提交到仓库
+TEST_PATH="docs/monthly/$(get_active_plan)/test"
 
-# 更新测试报告（旧方式，已过时）
-glab repo wiki update "test/test-report.md" --content "最新测试结果"
+# 提交测试用例
+git add "$TEST_PATH/testcases/"
+git commit -m "docs(test): add testcases - <功能名称>"
 
-# 新方式：使用脚本库封装（推荐）
-./scripts/document/document-test-wrapper.sh upload 测试用例文档.md v1.0.0
-./scripts/document/document-test-wrapper.sh view latest
+# 提交测试报告
+git add "$TEST_PATH/test-report/"
+git commit -m "docs(test): add test report - <功能名称>"
+
+git push
 ```
-
-## 脚本库集成使用（推荐）
-
-**底层逻辑**：标准化GitLab操作，统一错误处理，提升可维护性。
-
-### 脚本库位置
-```
-scripts/
-├── gitlab/                    # GitLab核心库
-│   ├── common.sh             # 公共函数：环境检查、路径处理、配置管理
-│   ├── auth.sh               # 认证管理：登录、验证、令牌管理
-│   └── wiki.sh               # Wiki操作：创建、更新、查看、删除
-└── document/                 # 文档技能封装
-    ├── document-pm-wrapper.sh  # PRD文档管理封装
-    ├── document-dev-wrapper.sh # 功能设计文档管理封装
-    ├── document-test-wrapper.sh # 测试文档管理封装（推荐使用）
-    ├── init.sh               # 文档库初始化
-    └── *.sh                  # 其他技能封装脚本
-```
-
-### 推荐使用方式
-```bash
-# 方式1：直接调用封装脚本（最推荐）
-./scripts/document/document-test-wrapper.sh upload 测试用例文档.md v1.0.0
-
-# 方式2：在技能中引用脚本库
-source scripts/gitlab/common.sh
-source scripts/gitlab/auth.sh
-source scripts/gitlab/wiki.sh
-source scripts/document/document-test-wrapper.sh
-
-# 然后调用封装函数
-init_document-test
-upload_document-test_document "测试用例文档.md" "v1.0.0"
-```
-
-### 脚本库核心函数
-- `check_glab_installed()` - GitLab CLI环境检查（从common.sh）
-- `check_auth_status()` - 认证状态检查（从auth.sh）
-- `glab_auth_interactive()` - 交互式GitLab认证（从auth.sh）
-- `wiki_create()` - 创建或更新Wiki页面（从wiki.sh）
-- `wiki_view()` - 查看Wiki页面（从wiki.sh）
-- `init_document-test()` - document-test技能初始化（从wrapper）
-- `upload_document-test_document()` - 上传测试文档（从wrapper）
-- `view_document-test_document()` - 查看测试文档（从wrapper）
-
-### document-test技能专用封装脚本
-`scripts/document/document-test-wrapper.sh` 提供以下命令：
-```bash
-# 初始化技能
-./scripts/document/document-test-wrapper.sh init
-
-# 上传测试文档
-./scripts/document/document-test-wrapper.sh upload <文件> [版本] [路径]
-
-# 查看测试文档
-./scripts/document/document-test-wrapper.sh view [版本] [路径]
-
-# 显示帮助
-./scripts/document/document-test-wrapper.sh help
-```
-
-### 向后兼容说明
-- **旧方式**：手动执行GitLab命令（已过时）
-- **新方式**：调用脚本库函数（推荐）
-- **兼容层**：脚本库内部仍使用glab，但提供统一接口和更好的错误处理
-- **路径兼容**：相对路径 `scripts/document/document-test-wrapper.sh`
-
-**优势**：
-1. **标准化操作**：所有GitLab操作通过统一接口
-2. **更好的错误处理**：脚本库提供详细的错误信息和恢复建议
-3. **可维护性**：集中管理GitLab API调用逻辑
-4. **可测试性**：独立的脚本便于单元测试和集成测试
-5. **跨技能复用**：其他document技能可复用相同逻辑
 
 ## 最佳实践
 
@@ -304,11 +240,10 @@ upload_document-test_document "测试用例文档.md" "v1.0.0"
    - 检查需求描述是否完整
    - 确认测试场景是否清晰
 
-2. **文档上传失败**
-   - 检查GitLab连接状态
-   - 验证仓库权限配置
-   - 使用脚本库调试：`./scripts/document/document-test-wrapper.sh init` 检查环境
-   - 查看详细错误日志：`./scripts/document/document-test-wrapper.sh upload --debug <文件>`
+2. **文档提交失败**
+   - 检查 git 状态：`git status`
+   - 确认目标路径已创建：`ls docs/monthly/<活跃计划>/test/`
+   - 检查 git 权限和远程配置：`git remote -v`
 
 3. **模板无法识别**
    - 检查模板文件是否存在
@@ -316,20 +251,17 @@ upload_document-test_document "测试用例文档.md" "v1.0.0"
 
 ### 调试命令
 ```bash
-# 检查测试模板
-ls -la skills/document-test/templates/
+# 检查测试文档目录
+ls -la docs/monthly/$(cat .sonli-spec-doc/config.yaml | grep active_plan | awk '{print $2}')/test/
 
-# 使用脚本库初始化检查
-./scripts/document/document-test-wrapper.sh init
+# 检查 git 状态
+git status
 
-# 查看上传日志
-cat .sonli-spec-doc/upload-test.log 2>/dev/null
-
-# 测试脚本库基本功能
-./scripts/document/document-test-wrapper.sh help
+# 查看最近提交
+git log --oneline -5
 ```
 
 ---
 **版本**: 1.0.0  
 **状态**: 就绪  
-**依赖**: GitLab CLI
+**依赖**: Git、superpowers 技能集

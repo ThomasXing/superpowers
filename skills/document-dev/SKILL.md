@@ -29,11 +29,16 @@ description: Use when designing technical implementation details from PRD requir
 - **测试验收报告(test report)**: 生成测试验收标准和报告模板
 - **代码审查报告(review report)**: 生成代码审查标准和报告模板
 
-### 3. 设计文档上传
-- **格式**: `/document-dev 上传`
-- **功能**: 上传设计文档到GitLab Wiki的 `dev/` 相关目录
-- **结构化上传**: 按文档类型上传到对应子目录
-- **版本关联**: 设计文档与PRD版本关联
+### 3. 设计文档提交
+- **格式**: `/document-dev 提交`
+- **功能**: 将设计文档提交到仓库 `docs/monthly/<活跃计划>/dev/` 对应子目录
+- **版本关联**: Git 历史自动关联设计文档与 PRD 版本
+- **命令示例**:
+  ```bash
+  git add docs/monthly/<活跃计划>/dev/
+  git commit -m "docs(dev): add design - <功能名称>"
+  git push
+  ```
 
 ### 4. 设计评审集成
 - **格式**: `/document-dev 评审 [设计文档]`
@@ -190,92 +195,17 @@ digraph dev_integration {
 
 **理性化的本质是质量妥协。今天妥协一点，明天债台高筑。**
 
-## 脚本库集成使用（推荐）
+## Git 提交使用方式
 
-**底层逻辑**：标准化GitLab操作，统一错误处理，提升可维护性。
-
-### 配置管理
-所有document技能共享统一配置文件 `.sonli-spec-doc/config.json`：
-```json
-{
-  "gitlab": {
-    "repo": "团队/wit-parking-wiki",
-    "host": "gitlab.com"
-  },
-  "version": {
-    "current": "v1.0.0"
-  }
-}
-```
-
-### 脚本库位置
-```
-scripts/
-├── gitlab/                    # GitLab核心库
-│   ├── common.sh             # 公共函数：环境检查、路径处理、配置管理
-│   ├── auth.sh               # 认证管理：登录、验证、令牌管理
-│   └── wiki.sh               # Wiki操作：创建、更新、查看、删除
-└── document/                 # 文档技能封装
-    ├── document-pm-wrapper.sh  # PRD文档管理封装
-    ├── document-dev-wrapper.sh # 功能设计文档管理封装（推荐使用）
-    ├── init.sh               # 文档库初始化
-    └── *.sh                  # 其他技能封装脚本
-```
-
-### 推荐使用方式
 ```bash
-# 方式1：直接调用封装脚本（最推荐）
-./scripts/document/document-dev-wrapper.sh upload 设计文档.md v1.0.0
+# 生成设计文档（AI 写入对应目录）
+DEV_PATH="docs/monthly/$(get_active_plan)/dev"
 
-# 方式2：在技能中引用脚本库
-source scripts/gitlab/common.sh
-source scripts/gitlab/auth.sh
-source scripts/gitlab/wiki.sh
-source scripts/document/document-dev-wrapper.sh
-
-# 然后调用封装函数
-init_document-dev
-upload_document-dev_document "设计文档.md" "v1.0.0"
+# 提交设计文档
+git add "$DEV_PATH/"
+git commit -m "docs(dev): add design - <功能名称>"
+git push
 ```
-
-### 脚本库核心函数
-- `check_glab_installed()` - GitLab CLI环境检查（从common.sh）
-- `check_auth_status()` - 认证状态检查（从auth.sh）
-- `glab_auth_interactive()` - 交互式GitLab认证（从auth.sh）
-- `wiki_create()` - 创建或更新Wiki页面（从wiki.sh）
-- `wiki_view()` - 查看Wiki页面（从wiki.sh）
-- `init_document-dev()` - document-dev技能初始化（从wrapper）
-- `upload_document-dev_document()` - 上传设计文档（从wrapper）
-- `view_document-dev_document()` - 查看设计文档（从wrapper）
-
-### document-dev技能专用封装脚本
-`scripts/document/document-dev-wrapper.sh` 提供以下命令：
-```bash
-# 初始化技能
-./scripts/document/document-dev-wrapper.sh init
-
-# 上传设计文档
-./scripts/document/document-dev-wrapper.sh upload <文件> [版本] [路径]
-
-# 查看设计文档
-./scripts/document/document-dev-wrapper.sh view [版本] [路径]
-
-# 显示帮助
-./scripts/document/document-dev-wrapper.sh help
-```
-
-### 向后兼容说明
-- **旧方式**：手动执行GitLab命令（已过时）
-- **新方式**：调用脚本库函数（推荐）
-- **兼容层**：脚本库内部仍使用glab，但提供统一接口和更好的错误处理
-- **路径兼容**：相对路径 `scripts/document/document-dev-wrapper.sh`
-
-**优势**：
-1. **标准化操作**：所有GitLab操作通过统一接口
-2. **更好的错误处理**：脚本库提供详细的错误信息和恢复建议
-3. **可维护性**：集中管理GitLab API调用逻辑
-4. **可测试性**：独立的脚本便于单元测试和集成测试
-5. **跨技能复用**：其他document技能可复用相同逻辑
 
 ## 性能指标
 

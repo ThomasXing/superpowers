@@ -96,7 +96,7 @@ create_standard_directories() {
         "dev/review-report"
         "test/testcases"
         "test/test-report"
-        "knowledge-base/compound"
+        "compound"
     )
 
     for dir in "${directories[@]}"; do

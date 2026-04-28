@@ -1,6 +1,6 @@
 ---
 name: document-pm
-description: Use when generating product requirement documents (PRD) for development projects, managing PRD versions, or when encountering ambiguous requirements that need clarification through brainstorming or office-hours consultation
+description: Use when generating product requirement documents (PRD) for development projects, managing PRD versions, or when encountering ambiguous requirements that need clarification through brainstorming
 ---
 
 # Document-PM - PRD文档管理独立技能
@@ -22,11 +22,16 @@ description: Use when generating product requirement documents (PRD) for develop
 - **完整性检查**: 强制包含需求背景、目标、功能需求、验收标准等章节
 - **兼容性**: 同时支持 `/document pm 生成 "需求描述"` 格式
 
-### 2. PRD上传管理
-- **格式**: `/document-pm 上传`
-- **功能**: 上传PRD到GitLab Wiki的 `pm/prd/` 目录
-- **版本控制**: 自动生成版本号和时间戳
-- **冲突处理**: 处理同名文档覆盖或重命名
+### 2. PRD 提交管理
+- **格式**: `/document-pm 提交`
+- **功能**: 将 PRD 提交到仓库 `docs/monthly/<活跃计划>/pm/prd/` 目录
+- **版本控制**: 通过 Git 历史追踪每次变更（自动生成 commit message）
+- **命令示例**:
+  ```bash
+  git add docs/monthly/<活跃计划>/pm/prd/<文件名>.md
+  git commit -m "docs(pm): update PRD - <功能名称> v<版本号>"
+  git push
+  ```
 
 ### 3. PRD版本管理
 - **格式**: `/document-pm 版本 [查看|回滚]`
@@ -51,7 +56,7 @@ description: Use when generating product requirement documents (PRD) for develop
 | `/brainstorming` 不可用 | **基础澄清模板**: 使用标准澄清问题列表 | "使用基础需求澄清模板，建议后续使用/brainstorming更彻底澄清" |
 | `/office-hours` 不可用 | **PM视角检查表**: 使用PM checklist替代 | "使用PM视角检查表，建议后续使用/office-hours更深入review" |
 | `gstack` 不可用 | **技术可行性模板**: 使用通用技术评估模板 | "使用通用技术评估模板，建议后续集成gstack更精确评估" |
-| GitLab连接失败 | **本地保存模式**: 保存到 `.sonli-spec-doc/local/` 目录 | "文档本地保存，网络恢复后执行`/document-pm 同步`上传" |
+| GitLab连接失败 | 无需网络：文档直接写入本地 `docs/` 目录，`git push` 时再同步 | - |
 
 ### 智能降级流程图
 
@@ -82,68 +87,19 @@ digraph pm_degradation {
 
 ## 脚本库集成使用（推荐）
 
-**底层逻辑**：标准化GitLab操作，统一错误处理，提升可维护性。
-
-### 脚本库位置
-```
-scripts/
-├── gitlab/                    # GitLab核心库
-│   ├── common.sh             # 公共函数：环境检查、路径处理、配置管理
-│   ├── auth.sh               # 认证管理：登录、验证、令牌管理
-│   └── wiki.sh               # Wiki操作：创建、更新、查看、删除
-└── document/                 # 文档技能封装
-    ├── document-pm-wrapper.sh  # PRD文档管理封装（推荐使用）
-    ├── init.sh               # 文档库初始化
-    └── *.sh                  # 其他技能封装脚本
-```
-
 ### 推荐使用方式
 ```bash
-# 方式1：直接调用封装脚本（最推荐）
-./scripts/document/document-pm-wrapper.sh upload prd文档.md v1.0.0
+# 生成 PRD 文档（AI 根据需求自动写入文件）
+DOCS_PATH="docs/monthly/$(get_active_plan)/pm/prd"
+mkdir -p "$DOCS_PATH"
+# AI 将 PRD 内容写入 $DOCS_PATH/<功能名>.md
 
-# 方式2：在技能中引用脚本库
-source scripts/gitlab/common.sh
-source scripts/gitlab/auth.sh
-source scripts/gitlab/wiki.sh
-source scripts/document/document-pm-wrapper.sh
-
-# 然后调用封装函数
-init_document-pm
-upload_document-pm_document "prd文档.md" "v1.0.0"
+# 提交到仓库
+git add "$DOCS_PATH/"
+git commit -m "docs(pm): add PRD - <功能名称>"
+git push
 ```
 
-### 脚本库核心函数
-- `check_glab_installed()` - GitLab CLI环境检查（从common.sh）
-- `check_auth_status()` - 认证状态检查（从auth.sh）
-- `glab_auth_interactive()` - 交互式GitLab认证（从auth.sh）
-- `wiki_create()` - 创建或更新Wiki页面（从wiki.sh）
-- `wiki_view()` - 查看Wiki页面（从wiki.sh）
-- `init_document-pm()` - PRD技能初始化（从wrapper）
-- `upload_document-pm_document()` - 上传PRD文档（从wrapper）
-- `view_document-pm_document()` - 查看PRD文档（从wrapper）
-
-### PRD技能专用封装脚本
-`scripts/document/document-pm-wrapper.sh` 提供以下命令：
-```bash
-# 初始化技能
-./scripts/document/document-pm-wrapper.sh init
-
-# 上传PRD文档
-./scripts/document/document-pm-wrapper.sh upload <文件> [版本] [路径]
-
-# 查看PRD文档
-./scripts/document/document-pm-wrapper.sh view [版本] [路径]
-
-# 显示帮助
-./scripts/document/document-pm-wrapper.sh help
-```
-
-### 向后兼容说明
-- **旧方式**：手动执行GitLab命令（已过时）
-- **新方式**：调用脚本库函数（推荐）
-- **兼容层**：脚本库内部仍使用glab，但提供统一接口和更好的错误处理
-- **路径兼容**：相对路径 `scripts/document/document-pm-wrapper.sh`
 
 **优势**：
 1. **标准化操作**：所有GitLab操作通过统一接口

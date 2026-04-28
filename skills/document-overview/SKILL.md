@@ -171,79 +171,19 @@ digraph overview_collection {
 
 **理性化的本质是管理失控。今天不透明，明天就失控。**
 
-## 脚本库集成使用（推荐）
+## Git 提交集成
 
-**底层逻辑**：标准化GitLab操作，统一错误处理，提升可维护性。
+**底层逻辑**：概览报告存入仓库，利用 Git 历史追踪每次更新。
 
-### 脚本库位置
-```
-scripts/
-├── gitlab/                    # GitLab核心库
-│   ├── common.sh             # 公共函数：环境检查、路径处理、配置管理
-│   ├── auth.sh               # 认证管理：登录、验证、令牌管理
-│   └── wiki.sh               # Wiki操作：创建、更新、查看、删除
-└── document/                 # 文档技能封装
-    ├── document-pm-wrapper.sh  # PRD文档管理封装
-    ├── document-dev-wrapper.sh # 功能设计文档管理封装
-    ├── document-overview-wrapper.sh # 项目概览文档管理封装（推荐使用）
-    ├── init.sh               # 文档库初始化
-    └── *.sh                  # 其他技能封装脚本
-```
-
-### 推荐使用方式
 ```bash
-# 方式1：直接调用封装脚本（最推荐）
-./scripts/document/document-overview-wrapper.sh generate v1.0.0 overview
+# 生成项目概览后提交到仓库
+OVERVIEW_PATH="docs/monthly/$(get_active_plan)"
 
-# 方式2：在技能中引用脚本库
-source scripts/gitlab/common.sh
-source scripts/gitlab/auth.sh
-source scripts/gitlab/wiki.sh
-source scripts/document/document-overview-wrapper.sh
-
-# 然后调用封装函数
-init_document-overview
-generate_overview "v1.0.0" "overview"
+# 提交概览报告
+git add "$OVERVIEW_PATH/overview.md"
+git commit -m "docs(overview): update project overview - $(date +%Y-%m-%d)"
+git push
 ```
-
-### 脚本库核心函数
-- `check_glab_installed()` - GitLab CLI环境检查（从common.sh）
-- `check_auth_status()` - 认证状态检查（从auth.sh）
-- `glab_auth_interactive()` - 交互式GitLab认证（从auth.sh）
-- `wiki_create()` - 创建或更新Wiki页面（从wiki.sh）
-- `wiki_view()` - 查看Wiki页面（从wiki.sh）
-- `init_document-overview()` - document-overview技能初始化（从wrapper）
-- `generate_overview()` - 生成/更新项目概览（从wrapper）
-- `view_overview()` - 查看项目概览（从wrapper）
-
-### document-overview技能专用封装脚本
-`scripts/document/document-overview-wrapper.sh` 提供以下命令：
-```bash
-# 初始化技能
-./scripts/document/document-overview-wrapper.sh init
-
-# 生成/更新项目概览
-./scripts/document/document-overview-wrapper.sh generate [版本] [路径]
-
-# 查看项目概览
-./scripts/document/document-overview-wrapper.sh view [版本] [路径]
-
-# 显示帮助
-./scripts/document/document-overview-wrapper.sh help
-```
-
-### 向后兼容说明
-- **旧方式**：手动执行GitLab命令（已过时）
-- **新方式**：调用脚本库函数（推荐）
-- **兼容层**：脚本库内部仍使用glab，但提供统一接口和更好的错误处理
-- **路径兼容**：相对路径 `scripts/document/document-overview-wrapper.sh`
-
-**优势**：
-1. **标准化操作**：所有GitLab操作通过统一接口
-2. **更好的错误处理**：脚本库提供详细的错误信息和恢复建议
-3. **可维护性**：集中管理GitLab API调用逻辑
-4. **可测试性**：独立的脚本便于单元测试和集成测试
-5. **跨技能复用**：其他document技能可复用相同逻辑
 
 ## 性能指标
 
@@ -306,6 +246,6 @@ digraph broadcast_frequency {
 **版本**: 2.1.0  
 **创建时间**: 2026-04-22  
 **更新时间**: 2026-04-26  
-**依赖**: GitLab CLI、superpowers脚本库、其他document技能状态数据  
+**依赖**: Git、其他 document 技能状态数据  
 **状态**: 就绪  
 **owner**: 项目经理/技术负责人
