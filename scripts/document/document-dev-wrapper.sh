@@ -53,18 +53,20 @@ upload_document-dev_document() {
 
     # 确定目标路径
     if [ -z "$target_path" ]; then
+        local wiki_prefix
+        wiki_prefix=$(get_wiki_prefix)
         case "$SKILL_NAME" in
             "document-pm")
-                target_path="pm/prd/$version"
+                target_path="$wiki_prefix/pm/prd/$version"
                 ;;
             "document-dev")
-                target_path="dev/design/$version"
+                target_path="$wiki_prefix/dev/design/$version"
                 ;;
             "document-test")
-                target_path="test/cases/$version"
+                target_path="$wiki_prefix/test/cases/$version"
                 ;;
             *)
-                target_path="${SKILL_NAME#document-}/$version"
+                target_path="$wiki_prefix/${SKILL_NAME#document-}/$version"
                 ;;
         esac
     fi
@@ -93,18 +95,20 @@ view_document-dev_document() {
 
     # 确定目标路径
     if [ -z "$target_path" ]; then
+        local wiki_prefix
+        wiki_prefix=$(get_wiki_prefix)
         case "$SKILL_NAME" in
             "document-pm")
-                target_path="pm/prd/$version"
+                target_path="$wiki_prefix/pm/prd/$version"
                 ;;
             "document-dev")
-                target_path="dev/design/$version"
+                target_path="$wiki_prefix/dev/design/$version"
                 ;;
             "document-test")
-                target_path="test/cases/$version"
+                target_path="$wiki_prefix/test/cases/$version"
                 ;;
             *)
-                target_path="${SKILL_NAME#document-}/$version"
+                target_path="$wiki_prefix/${SKILL_NAME#document-}/$version"
                 ;;
         esac
     fi

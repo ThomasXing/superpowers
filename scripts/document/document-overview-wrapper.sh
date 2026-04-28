@@ -84,9 +84,12 @@ generate_overview() {
 *自动生成于 $(date)*"
 
     # 上传概览
-    wiki_create "$target_path" "$content" "项目概览 $version"
+    local wiki_prefix
+    wiki_prefix=$(get_wiki_prefix)
+    local full_path="$wiki_prefix/$target_path"
+    wiki_create "$full_path" "$content" "项目概览 $version"
 
-    log_info "✅ 项目概览生成完成: $target_path"
+    log_info "✅ 项目概览生成完成: $full_path"
     return 0
 }
 
@@ -101,7 +104,10 @@ view_overview() {
     init_document-overview || return 1
 
     # 查看概览
-    wiki_view "$target_path"
+    local wiki_prefix
+    wiki_prefix=$(get_wiki_prefix)
+    local full_path="$wiki_prefix/$target_path"
+    wiki_view "$full_path"
 
     return $?
 }

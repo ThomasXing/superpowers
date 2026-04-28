@@ -13,6 +13,7 @@ source "$SCRIPT_DIR/../gitlab/wiki.sh"
 # 初始化文档库
 document_init() {
     local wiki_url="$1"
+    local plan_name="${2:-}"
     local repo_path
     local config_dir
 
@@ -43,25 +44,38 @@ document_init() {
     config_dir=$(check_config_dir)
     log_info "配置目录: $config_dir"
 
-    # 6. 保存配置
+    # 6. 保存基础配置
     write_config "gitlab.repo" "$repo_path"
     write_config "gitlab.host" "$host"
     write_config "init.url" "$wiki_url"
     write_config "init.timestamp" "$(date -Iseconds)"
     write_config "version.current" "v1.0.0"
 
-    # 7. 创建标准目录结构
+    # 7. 配置月度计划名称
+    if [ -n "$plan_name" ]; then
+        log_info "月度计划名称: $plan_name"
+        configure_active_plan "$plan_name" "true"
+    else
+        log_warn "未提供月度计划名称，将使用根命名空间"
+        log_info "可通过以下命令后续配置: $0 plan <计划名称>"
+    fi
+
+    # 8. 创建标准目录结构
     create_standard_directories
 
-    # 8. 创建初始文档
+    # 9. 创建初始文档
     create_initial_documents "$repo_path"
 
-    # 9. 测试连接和上传
+    # 10. 测试连接和上传
     test_wiki_connection "$repo_path"
 
     log_info "✅ 文档库初始化完成"
     log_info "配置保存到: $config_dir/config.json"
     log_info "Wiki地址: https://$host/$repo_path/-/wikis/home"
+    if [ -n "$plan_name" ]; then
+        log_info "活跃月度计划: $plan_name"
+        log_info "Wiki路径前缀: $(get_wiki_prefix)"
+    fi
 
     return 0
 }
@@ -407,13 +421,78 @@ test_wiki_connection() {
 # 主函数
 main() {
     if [ $# -eq 0 ]; then
-        log_error "使用方法: $0 <gitlab-wiki-url>"
-        log_info "示例: $0 https://gitlab.com/团队/wit-parking-wiki"
+        log_error "使用方法: $0 <command> [args]"
+        echo ""
+        echo "命令:"
+        echo "  init <gitlab-wiki-url> [计划名称]    - 初始化文档库（可同时指定月度计划名称）"
+        echo "  plan <计划名称>                        - 配置/切换月度计划"
+        echo "  plan list                              - 列出所有月度计划"
+        echo "  plan current                           - 查看当前活跃月度计划"
+        echo ""
+        echo "示例:"
+        echo "  $0 init https://gitlab.com/团队/wiki '2026年4月月度计划'"
+        echo "  $0 plan '2026年5月月度计划'"
+        echo "  $0 plan list"
         exit 1
     fi
 
-    local wiki_url="$1"
-    document_init "$wiki_url"
+    local command="$1"
+    shift || true
+
+    case "$command" in
+        "init")
+            local wiki_url="${1:-}"
+            local plan_name="${2:-}"
+            if [ -z "$wiki_url" ]; then
+                log_error "请提供 GitLab Wiki URL"
+                echo "示例: $0 init https://gitlab.com/团队/wiki '2026年4月月度计划'"
+                exit 1
+            fi
+            document_init "$wiki_url" "$plan_name"
+            ;;
+        "plan")
+            local subcmd="${1:-help}"
+            case "$subcmd" in
+                "list")
+                    log_info "已注册的月度计划:"
+                    list_plans | while read -r plan; do
+                        if [ -n "$plan" ]; then
+                            local marker=" "
+                            if [ "$plan" = "$(get_active_plan)" ]; then
+                                marker="*"
+                            fi
+                            echo "  [$marker] $plan"
+                        fi
+                    done
+                    ;;
+                "current")
+                    local active
+                    active=$(get_active_plan)
+                    if [ -n "$active" ]; then
+                        log_info "当前活跃月度计划: $active"
+                        log_info "Wiki路径前缀: $(get_wiki_prefix)"
+                    else
+                        log_warn "未配置活跃月度计划"
+                    fi
+                    ;;
+                "help"|"--help"|"-h")
+                    echo "用法: $0 plan <子命令>"
+                    echo "子命令:"
+                    echo "  <计划名称>  - 切换到指定月度计划（如不存在则自动创建）"
+                    echo "  list        - 列出所有月度计划"
+                    echo "  current     - 查看当前活跃月度计划"
+                    ;;
+                *)
+                    switch_plan "$subcmd"
+                    ;;
+            esac
+            ;;
+        *)
+            log_error "未知命令: $command"
+            echo "使用: $0 help 查看帮助"
+            exit 1
+            ;;
+    esac
 }
 
 # 脚本执行

@@ -110,7 +110,9 @@ generate_compound() {
 
     # 生成文件名
     local filename=$(echo "$title" | tr ' ' '-' | tr -cd '[:alnum:]-').md
-    local full_path="$target_path/$filename"
+    local wiki_prefix
+    wiki_prefix=$(get_wiki_prefix)
+    local full_path="$wiki_prefix/$target_path/$filename"
 
     # 上传经验总结
     wiki_create "$full_path" "$content" "$title $version"
@@ -131,7 +133,9 @@ view_compound() {
 
     # 生成文件名
     local filename=$(echo "$title" | tr ' ' '-' | tr -cd '[:alnum:]-').md
-    local full_path="$target_path/$filename"
+    local wiki_prefix
+    wiki_prefix=$(get_wiki_prefix)
+    local full_path="$wiki_prefix/$target_path/$filename"
 
     # 查看经验总结
     wiki_view "$full_path"
@@ -149,7 +153,10 @@ list_compound() {
     init_document-compound || return 1
 
     # 列出Wiki页面
-    wiki_list "$target_path"
+    local wiki_prefix
+    wiki_prefix=$(get_wiki_prefix)
+    local full_path="$wiki_prefix/$target_path"
+    wiki_list "$full_path"
 
     return $?
 }

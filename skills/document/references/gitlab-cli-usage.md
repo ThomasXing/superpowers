@@ -78,7 +78,7 @@ glab api /version
 glab repo wiki create "文档路径" --content "文档内容"
 
 # 指定格式
-glab repo wiki create "产品中心月度计划/pm/prd/v1.0.0" \
+glab repo wiki create "{根命名空间}/{活跃计划}/pm/prd/v1.0.0" \
   --content "$(cat prd.md)" \
   --format markdown
 
@@ -91,7 +91,7 @@ glab repo wiki create "开发规范" \
 #### 更新Wiki页面
 ```bash
 # 更新内容
-glab repo wiki update "产品中心月度计划/pm/prd/v1.0.0" \
+glab repo wiki update "{根命名空间}/{活跃计划}/pm/prd/v1.0.0" \
   --content "$(cat updated-prd.md)"
 
 # 重命名页面
@@ -104,7 +104,7 @@ glab repo wiki update "旧路径" --rename "新路径"
 glab repo wiki list
 
 # 查看特定页面
-glab repo wiki view "产品中心月度计划/pm/prd/v1.0.0"
+glab repo wiki view "{根命名空间}/{活跃计划}/pm/prd/v1.0.0"
 
 # 查看原始内容
 glab repo wiki view "路径" --raw
@@ -216,17 +216,17 @@ fi
 
 # 5. 初始化目录
 echo "初始化目录结构..."
-mkdir -p "产品中心月度计划/pm/prd"
-mkdir -p "产品中心月度计划/dev/plans"
-mkdir -p "产品中心月度计划/dev/tasks"
-mkdir -p "产品中心月度计划/dev/test report"
-mkdir -p "产品中心月度计划/dev/review report"
-mkdir -p "产品中心月度计划/test/testcases"
-mkdir -p "产品中心月度计划/test/test report"
+mkdir -p "{根命名空间}/{活跃计划}/pm/prd"
+mkdir -p "{根命名空间}/{活跃计划}/dev/plans"
+mkdir -p "{根命名空间}/{活跃计划}/dev/tasks"
+mkdir -p "{根命名空间}/{活跃计划}/dev/test report"
+mkdir -p "{根命名空间}/{活跃计划}/dev/review report"
+mkdir -p "{根命名空间}/{活跃计划}/test/testcases"
+mkdir -p "{根命名空间}/{活跃计划}/test/test report"
 
 # 6. 创建初始文档
 echo "创建初始文档..."
-cat > "产品中心月度计划/README.md" << 'EOF'
+cat > "{根命名空间}/{活跃计划}/README.md" << 'EOF'
 # 产品中心月度计划
 
 ## 目录结构
@@ -315,7 +315,7 @@ if [ ! -f "$PRD_FILE" ]; then
 fi
 
 # 上传到Wiki
-WIKI_PATH="产品中心月度计划/pm/prd/$PRD_VERSION"
+WIKI_PATH="{根命名空间}/{活跃计划}/pm/prd/$PRD_VERSION"
 echo "上传PRD: $WIKI_PATH"
 
 glab repo wiki create "$WIKI_PATH" \
@@ -324,7 +324,7 @@ glab repo wiki create "$WIKI_PATH" \
   --format markdown
 
 # 更新PRD索引
-INDEX_PATH="产品中心月度计划/pm/prd/README.md"
+INDEX_PATH="{根命名空间}/{活跃计划}/pm/prd/README.md"
 if ! glab repo wiki view "$INDEX_PATH" &> /dev/null; then
     # 创建索引
     cat > /tmp/prd-index.md << EOF

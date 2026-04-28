@@ -21,7 +21,46 @@ description: Use when setting up a new GitLab Wiki repository for team documenta
 - **兼容性**：同时支持 `/document init <gitlab-wiki-url>` 格式
 - **配置存储**：创建 `.sonli-spec-doc/config.json` 存储配置信息
 
-### 2. GitLab CLI 认证管理
+### 2. 月度计划管理（★ 新增 v2.1）
+- **格式**：`/document-init plan <计划名称>`
+- **功能**：配置或切换当前活跃的月度计划
+- **原理**：所有 document 子技能（pm/dev/test/overview/compound）的 Wiki 路径自动拼接「根命名空间/活跃月度计划」前缀
+- **多计划共存**：支持注册多个月度计划，通过切换活跃计划在不同计划间无缝切换
+
+```
+Wiki 路径层级:
+  产品中心月度计划/           ← 根命名空间（directories.root）
+  ├── 2026年4月月度计划/      ← 活跃计划（directories.active_plan）
+  │   ├── pm/prd/             ← PRD 文档自动归入此目录
+  │   ├── dev/plans/          ← 设计文档自动归入此目录
+  │   ├── test/testcases/     ← 测试用例自动归入此目录
+  │   └── overview.md         ← 项目概览自动归入此目录
+  └── 2026年5月月度计划/      ← 可切换至此
+      ├── pm/prd/
+      └── ...
+```
+
+#### 计划管理命令
+```bash
+# 初始化时直接指定月度计划（推荐）
+/document-init https://gitlab.com/团队/wiki '2026年4月月度计划'
+
+# 后续配置/切换计划
+/document-init plan '2026年5月月度计划'
+
+# 列出所有已注册计划
+/document-init plan list
+
+# 查看当前活跃计划
+/document-init plan current
+```
+
+#### 计划切换流程
+1. 检查目标计划是否已注册 → 2. 不存在则自动注册 → 3. 设为活跃计划 → 4. 所有后续文档操作使用新路径
+
+**关键设计**：切换计划后，所有 document-* 子技能自动使用新路径，无需手动修改任何配置。
+
+### 3. GitLab CLI 认证管理
 - **自动检测**：检查 `glab` CLI 工具是否已安装
 - **认证引导**：指导用户完成 GitLab 认证配置
 - **权限验证**：验证用户对 Wiki 仓库的读写权限
@@ -56,6 +95,7 @@ wit-parking-wiki/              # GitLab Wiki项目协作文档目录
 - [ ] 网络连接测试：调用 `scripts/gitlab/common.sh` 中的 `check_network()` 函数
 - [ ] 仓库权限验证：使用脚本库的仓库验证功能
 - [ ] 配置文件创建：调用 `scripts/gitlab/common.sh` 中的 `check_config_dir()` 和 `write_config()` 函数
+- [ ] **★ 月度计划配置**：调用 `configure_active_plan()` 确保 `directories.active_plan` 已设置
 - [ ] 目录结构创建：调用 `scripts/document/init.sh` 中的 `create_standard_directories()` 函数
 - [ ] 连接健康检查：使用脚本库的健康检查功能
 - [ ] 回滚机制：保存初始化前状态
@@ -66,11 +106,11 @@ wit-parking-wiki/              # GitLab Wiki项目协作文档目录
 
 ### 初始化命令
 ```bash
-# 连字符格式（推荐）
-/document-init https://gitlab.com/团队/wit-parking-wiki
+# 连字符格式（推荐），同时指定月度计划名称
+/document-init https://gitlab.com/团队/wit-parking-wiki '2026年4月月度计划'
 
 # 空格格式（兼容）
-/document init https://gitlab.com/团队/wit-parking-wiki
+/document init https://gitlab.com/团队/wit-parking-wiki '2026年4月月度计划'
 ```
 
 ### 配置检查
@@ -85,8 +125,20 @@ wit-parking-wiki/              # GitLab Wiki项目协作文档目录
 /document-init reset
 ```
 
+### 月度计划管理
+```bash
+# 切换活跃计划
+/document-init plan '2026年5月月度计划'
+
+# 列出所有计划
+/document-init plan list
+
+# 查看当前计划
+/document-init plan current
+```
+
 ### 初始化流程
-1. **环境检查** → 2. **认证配置** → 3. **仓库关联** → 4. **目录创建** → 5. **配置验证** → 6. **完整性检查**
+1. **环境检查** → 2. **认证配置** → 3. **仓库关联** → 4. **★ 月度计划配置** → 5. **目录创建** → 6. **配置验证** → 7. **完整性检查**
 
 **每一步必须完成，不能以"后面可以补"为借口跳过。中途失败必须从第一步重新开始，不能"差不多就行"。**
 
@@ -99,29 +151,33 @@ wit-parking-wiki/              # GitLab Wiki项目协作文档目录
 | "网络连不上，先本地存着" | **必须验证连接，否则提供真实错误** |
 | "配置有点问题，先凑合用" | **强制修复，不能凑合** |
 | "感觉可以了，不用再检查" | **强制完整性检查，不靠感觉** |
+| "月度计划名称无所谓，直接用根目录" | **强制配置活跃计划，多计划共存时必须明确当前计划** |
+| "切换计划太麻烦，先混着放" | **一键切换，文档路径自动变更，不能混放** |
 
 **理性化都是技术债的根源。今天不闭环，明天就难还债。**
 
 ## 目录结构规范
 
-初始化后创建的目录结构：
+初始化后创建的目录结构（活跃计划 = `2026年4月月度计划` 示例）：
 ```
-wit-parking-wiki/              # GitLab Wiki项目协作文档目录
-├── pm/
-│   └── prd/                   # 产品需求文档
-├── dev/
-│   ├── plans/                # 需求拆解
-│   ├── tasks/                # 任务分配
-│   ├── test report/          # 测试验收报告
-│   └── review report/        # 代码审查报告
-├── test/
-│   ├── testcases/            # 测试用例
-│   └── test report/          # 测试验收报告
-├── knowledge-base/
-│   └── compound/             # 开发经验总结
-├── DESIGN.md                 # UI/UX设计规范
-├── overview.md               # 项目进度报告
-└── CHANGELOG.md             # 项目变更日志
+wit-parking-wiki/                              # GitLab Wiki项目协作文档目录
+├── 产品中心月度计划/                            # 根命名空间
+│   ├── 2026年4月月度计划/                       # ★ 活跃月度计划
+│   │   ├── pm/
+│   │   │   └── prd/                            # 产品需求文档
+│   │   ├── dev/
+│   │   │   ├── plans/                          # 需求拆解
+│   │   │   ├── tasks/                          # 任务分配
+│   │   │   ├── test report/                    # 测试验收报告
+│   │   │   └── review report/                  # 代码审查报告
+│   │   ├── test/
+│   │   │   ├── testcases/                      # 测试用例
+│   │   │   └── test report/                    # 测试验收报告
+│   │   └── overview.md                         # 项目进度报告
+│   └── 2026年5月月度计划/                       # 后续可切换至此
+├── DESIGN.md                                   # UI/UX设计规范
+├── overview.md                                 # 项目级概览（跨月度计划）
+└── CHANGELOG.md                               # 项目变更日志
 ```
 
 ## 错误处理
