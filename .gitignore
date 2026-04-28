@@ -5,3 +5,5 @@
 node_modules/
 inspo
 triage/
+.qoder/
+.sonli-spec-doc/

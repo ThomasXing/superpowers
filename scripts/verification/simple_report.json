@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-04-24",
+  "total_skills": 8,
+  "passed_skills": 6,
+  "pass_rate": 75.0,
+  "average_score": 75.0,
+  "skill_results": [
+    {
+      "skill_name": "document",
+      "exists": true,
+      "metadata_ok": true,
+      "score": 100,
+      "grade": "优秀",
+      "messages": [
+        "技能验证通过: document (21176字节)",
+        "元数据验证通过"
+      ]
+    },
+    {
+      "skill_name": "review",
+      "exists": false,
+      "metadata_ok": false,
+      "score": 0,
+      "grade": "不合格",
+      "messages": [
+        "技能目录不存在: review",
+        ""
+      ]
+    },
+    {
+      "skill_name": "ship",
+      "exists": false,
+      "metadata_ok": false,
+      "score": 0,
+      "grade": "不合格",
+      "messages": [
+        "技能目录不存在: ship",
+        ""
+      ]
+    },
+    {
+      "skill_name": "brainstorming",
+      "exists": true,
+      "metadata_ok": true,
+      "score": 100,
+      "grade": "优秀",
+      "messages": [
+        "技能验证通过: brainstorming (10634字节)",
+        "元数据验证通过"
+      ]
+    },
+    {
+      "skill_name": "qa",
+      "exists": true,
+      "metadata_ok": true,
+      "score": 100,
+      "grade": "优秀",
+      "messages": [
+        "技能验证通过: qa (12123字节)",
+        "元数据验证通过"
+      ]
+    },
+    {
+      "skill_name": "systematic-debugging",
+      "exists": true,
+      "metadata_ok": true,
+      "score": 100,
+      "grade": "优秀",
+      "messages": [
+        "技能验证通过: systematic-debugging (9884字节)",
+        "元数据验证通过"
+      ]
+    },
+    {
+      "skill_name": "subagent-driven-development",
+      "exists": true,
+      "metadata_ok": true,
+      "score": 100,
+      "grade": "优秀",
+      "messages": [
+        "技能验证通过: subagent-driven-development (12139字节)",
+        "元数据验证通过"
+      ]
+    },
+    {
+      "skill_name": "using-superpowers",
+      "exists": true,
+      "metadata_ok": true,
+      "score": 100,
+      "grade": "优秀",
+      "messages": [
+        "技能验证通过: using-superpowers (5421字节)",
+        "元数据验证通过"
+      ]
+    }
+  ]
+}

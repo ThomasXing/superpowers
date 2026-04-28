@@ -1,0 +1,186 @@
+# 技能验证看板配置
+# 版本：v1.0
+# 责任人：邢海青
+
+# 看板显示配置
+dashboard:
+  name: "Superpowers技能质量看板"
+  refresh_interval: 3600  # 1小时刷新一次
+  theme: "dark"
+  language: "zh-CN"
+
+# 关键指标配置
+key_metrics:
+  - id: process_closed_rate
+    name: "流程闭环率"
+    target: 100
+    warning_threshold: 85
+    critical_threshold: 70
+    weight: 40
+
+  - id: average_score
+    name: "平均验证得分"
+    target: 100
+    warning_threshold: 80
+    critical_threshold: 60
+    weight: 30
+
+  - id: issue_resolution_rate
+    name: "问题解决及时率"
+    target: 100
+    warning_threshold: 90
+    critical_threshold: 70
+    weight: 20
+
+  - id: skill_activity_rate
+    name: "技能使用活跃度"
+    target: 90
+    warning_threshold: 70
+    critical_threshold: 50
+    weight: 10
+
+# 技能分类配置
+skill_categories:
+  core:
+    name: "核心技能"
+    skills: ["document", "qa", "systematic-debugging", "subagent-driven-development"]
+    weight: 40
+
+  development:
+    name: "开发技能"
+    skills: ["brainstorming", "writing-skills", "using-superpowers"]
+    weight: 30
+
+  quality:
+    name: "质量技能"
+    skills: ["review", "ship", "test-driven-development"]
+    weight: 20
+
+  management:
+    name: "管理技能"
+    skills: ["using-git-worktrees", "finishing-a-development-branch"]
+    weight: 10
+
+# 告警配置
+alerts:
+  # 邮件告警
+  email:
+    enabled: true
+    recipients: ["xinghaiqing@sonli.cn"]
+    frequency: "daily"
+
+  # 钉钉告警
+  dingtalk:
+    enabled: true
+    webhook: "https://oapi.dingtalk.com/robot/send"
+    at_mobiles: ["13800138000"]
+    frequency: "immediate"
+
+  # 等级定义
+  levels:
+    info:
+      color: "#1890FF"
+      icon: "ℹ️"
+      conditions: ["score >= 90", "closed_rate >= 95"]
+
+    warning:
+      color: "#FAAD14"
+      icon: "⚠️"
+      conditions: ["70 <= score < 90", "85 <= closed_rate < 95"]
+
+    critical:
+      color: "#FF4D4F"
+      icon: "🚨"
+      conditions: ["score < 70", "closed_rate < 85"]
+
+# 报告配置
+reports:
+  daily:
+    enabled: true
+    time: "09:00"
+    format: "markdown"
+    include: ["summary", "top_issues", "trends"]
+
+  weekly:
+    enabled: true
+    day: "monday"
+    time: "10:00"
+    format: "html"
+    include: ["detailed_analysis", "comparison", "forecast"]
+
+  monthly:
+    enabled: true
+    day: 1
+    time: "14:00"
+    format: "pdf"
+    include: ["comprehensive_analysis", "kpi_review", "improvement_plan"]
+
+# 责任人配置
+owners:
+  document: "邢海青"
+  qa: "测试团队"
+  review: "质量团队"
+  ship: "DevOps团队"
+  systematic-debugging: "技术专家"
+  subagent-driven-development: "架构团队"
+  brainstorming: "产品团队"
+  writing-skills: "文档团队"
+  using-superpowers: "所有用户"
+
+# 数据源配置
+data_sources:
+  validation_results: "scripts/verification/simple_report.json"
+  git_log: ".git/logs/HEAD"
+  skill_usage: ".claude/session_logs/"
+  feedback_data: ".sonli-spec-doc/feedback/"
+
+# 看板视图配置
+views:
+  overview:
+    title: "概览"
+    widgets: ["summary_cards", "trend_chart", "gauge_chart"]
+    refresh: 300  # 5分钟
+
+  skills:
+    title: "技能榜单"
+    widgets: ["skill_table", "score_distribution", "category_breakdown"]
+    refresh: 600  # 10分钟
+
+  issues:
+    title: "问题追踪"
+    widgets: ["issue_list", "resolution_timeline", "owner_performance"]
+    refresh: 900  # 15分钟
+
+  trends:
+    title: "趋势分析"
+    widgets: ["weekly_trend", "monthly_comparison", "forecast_chart"]
+    refresh: 3600  # 1小时
+
+# 集成配置
+integrations:
+  gitlab:
+    enabled: true
+    project_id: "12345"
+    wiki_path: "wit-parking-wiki"
+
+  jira:
+    enabled: false
+    url: ""
+    project_key: ""
+
+  slack:
+    enabled: false
+    webhook: ""
+
+# 权限配置
+permissions:
+  view: ["all"]
+  edit: ["邢海青", "质量团队", "架构团队"]
+  admin: ["邢海青"]
+
+# 历史数据保留
+retention:
+  validation_results: 90  # 天
+  trend_data: 365  # 天
+  detailed_logs: 30  # 天
+  reports: 180  # 天

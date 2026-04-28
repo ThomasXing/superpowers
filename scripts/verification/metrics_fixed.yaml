@@ -1,0 +1,119 @@
+# 技能验证指标定义
+# 版本：v1.1 - 修复YAML解析问题
+# 责任人：邢海青
+# 更新时间：2026-04-24
+
+# 通用验证指标（所有技能必须满足）
+universal_metrics:
+  - id: file_exists
+    name: 文件存在验证
+    description: 技能文件必须存在
+    validation: "test -f $SKILL_PATH/SKILL.md"
+    success_pattern: "0"
+    weight: 10
+
+  - id: syntax_check
+    name: 语法检查
+    description: Markdown/YAML语法正确
+    validation: "grep -c '^---$' $SKILL_PATH/SKILL.md | head -20"
+    success_pattern: "2"
+    weight: 10
+
+  - id: metadata_complete
+    name: 元数据完整性
+    description: 技能名称和描述完整
+    validation: "grep -q '^name:' $SKILL_PATH/SKILL.md && grep -q '^description:' $SKILL_PATH/SKILL.md"
+    success_pattern: "0"
+    weight: 15
+
+# 按技能类型分类的验证指标
+skill_type_metrics:
+  development:
+    - id: build_success
+      name: 构建成功
+      description: 技能相关的构建脚本必须成功
+      validation: "cd $SKILL_PATH && if [ -f build.sh ]; then bash build.sh; else echo 'no_build_script'; fi"
+      success_pattern: "success\|no_build_script"
+      weight: 20
+
+    - id: test_passing
+      name: 测试通过
+      description: 单元测试必须通过
+      validation: "cd $SKILL_PATH && if [ -f test.sh ]; then bash test.sh; else echo 'no_test_script'; fi"
+      success_pattern: "PASS\|no_test_script"
+      weight: 25
+
+    - id: documentation
+      name: 文档完整
+      description: README文档必须存在且完整
+      validation: "if [ -f $SKILL_PATH/README.md ]; then wc -l $SKILL_PATH/README.md | awk '{print $1}'; else echo '0'; fi"
+      success_min: 10
+      weight: 15
+
+  document:
+    - id: template_exists
+      name: 模板存在
+      description: 文档模板文件必须存在
+      validation: "find $SKILL_PATH/templates -name '*.md' 2>/dev/null | wc -l"
+      success_min: 1
+      weight: 20
+
+    - id: generation_success
+      name: 生成成功
+      description: 文档生成脚本必须成功
+      validation: "cd $SKILL_PATH && if [ -f generate.sh ]; then timeout 30 bash generate.sh sample; else echo 'no_generate_script'; fi"
+      success_pattern: "success\|no_generate_script"
+      weight: 30
+
+    - id: git_upload
+      name: Git上传
+      description: Git上传功能必须验证
+      validation: "grep -c 'git.*push' $SKILL_PATH/SKILL.md"
+      success_min: 1
+      weight: 20
+
+  quality:
+    - id: checklist_exists
+      name: 检查清单
+      description: 质量检查清单必须存在
+      validation: "if [ -f $SKILL_PATH/checklist.md ]; then wc -l $SKILL_PATH/checklist.md | awk '{print $1}'; else echo '0'; fi"
+      success_min: 5
+      weight: 25
+
+    - id: risk_analysis
+      name: 风险分析
+      description: 必须包含风险分析章节
+      validation: "grep -ci '风险' $SKILL_PATH/SKILL.md"
+      success_min: 1
+      weight: 20
+
+    - id: validation_points
+      name: 验证点
+      description: 必须包含明确的验证点
+      validation: "grep -ci '验证' $SKILL_PATH/SKILL.md"
+      success_min: 3
+      weight: 25
+
+# 验证结果评分标准
+scoring:
+  excellent: 90-100  # 优秀
+  good: 80-89       # 良好
+  fair: 70-79       # 合格
+  poor: 60-69       # 待改进
+  fail: 0-59        # 不合格
+
+# 责任人映射
+owners:
+  document: "邢海青"
+  review: "质量团队"
+  ship: "DevOps"
+  brainstorming: "产品团队"
+  qa: "测试团队"
+  systematic-debugging: "技术专家"
+  subagent-driven-development: "架构团队"
+
+# 验证频率
+frequency:
+  daily: ["document", "review", "ship"]
+  weekly: ["brainstorming", "qa", "systematic-debugging"]
+  monthly: ["subagent-driven-development", "writing-skills", "using-superpowers"]

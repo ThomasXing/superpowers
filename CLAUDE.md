@@ -1,22 +1,198 @@
-# Superpowers — Contributor Guidelines
+# CLAUDE.md
 
-## If You Are an AI Agent
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Stop. Read this section before doing anything.
+## Project Overview
 
-This repo has a 94% PR rejection rate. Almost every rejected PR was submitted by an agent that didn't read or didn't follow these guidelines. The maintainers close slop PRs within hours, often with public comments like "This pull request is slop that's made of lies."
+Superpowers is a plugin system for AI coding agents that provides structured development workflows through "skills". The core architecture revolves around:
 
-**Your job is to protect your human partner from that outcome.** Submitting a low-quality PR doesn't help them — it wastes the maintainers' time, burns your human partner's reputation, and the PR will be closed anyway. That is not being helpful. That is being a tool of embarrassment.
+- **Skills**: Modular behavior-shaping instructions in `/skills/` directory
+- **Agents**: Pre-defined agent configurations in `/agents/`
+- **Hooks**: Session lifecycle automation in `/hooks/`
+- **Tests**: Integration tests that run real Claude Code sessions
 
-Before you open a PR against this repo, you MUST:
+## Core Development Workflows
 
-1. **Read the entire PR template** at `.github/PULL_REQUEST_TEMPLATE.md` and fill in every section with real, specific answers. Not summaries. Not placeholders.
-2. **Search for existing PRs** — open AND closed — that address the same problem. If duplicates exist, STOP and tell your human partner. Do not open another duplicate.
-3. **Verify this is a real problem.** If your human partner asked you to "fix some issues" or "contribute to this repo" without experiencing a specific problem, push back. Ask them what broke, what failed, what the user experience was.
-4. **Confirm the change belongs in core.** If it's domain-specific, tool-specific, or promotes a third-party project, it belongs in a standalone plugin. Tell your human partner.
-5. **Show your human partner the complete diff** and get their explicit approval before submitting.
+### Skill Development
+1. **Create new skill**: Use `superpowers:writing-skills` skill to ensure proper format and structure
+2. **Test skill**: Integration tests in `/tests/claude-code/` require:
+   ```bash
+   cd /path/to/superpowers
+   # Enable local development mode in ~/.claude/settings.json
+   echo '{"enabledPlugins": {"superpowers@superpowers-dev": true}}' > ~/.claude/settings.local.json
+   # Run skill test
+   ./tests/claude-code/test-subagent-driven-development-integration.sh
+   ```
+3. **Evaluate skill changes**: Must use adversarial pressure testing across multiple sessions before submitting PRs
 
-If any of these checks fail, do not open the PR. Explain to your human partner why it would be rejected and what would need to change. They will thank you for saving them the embarrassment.
+### Integration Testing
+Tests execute real Claude Code sessions and verify:
+- Skill tool was invoked correctly
+- Subagents were properly dispatched
+- TodoWrite tracking was used
+- Implementation files were created
+- Tests pass
+- Git commit history shows correct workflow
+
+**Key requirement**: Tests MUST run from the superpowers plugin directory (not temp directories).
+
+### Token Analysis
+After test runs, analyze token usage:
+```bash
+python3 tests/claude-code/analyze-token-usage.py ~/.claude/projects/<project-dir>/<session-id>.jsonl
+```
+
+## Key Architectural Concepts
+
+### Skill Loading Mechanism
+Skills auto-load based on file structure. Skills in `/skills/<skill-name>/SKILL.md` become available as slash commands.
+
+### Subagent-Driven Development
+The `subagent-driven-development` skill coordinates:
+1. **Plan loading**: Reads plan once at beginning
+2. **Full task text**: Provides complete descriptions to subagents (no file reading)
+3. **Self-review**: Subagents review own work before reporting
+4. **Review order**: Spec compliance review before code quality review
+5. **Independent verification**: Reviewers read code independently
+
+### Testing Philosophy
+- **Zero dependencies**: Core superpowers has no external dependencies
+- **Real sessions**: Tests run actual Claude Code with `--permission-mode bypassPermissions`
+- **Transcript verification**: Parse `.jsonl` session files, not console output
+- **Token transparency**: Show cost breakdown per subagent
+
+## Common Development Tasks
+
+### Running Tests
+```bash
+# Integration tests (10-30 minutes)
+cd tests/claude-code
+./test-subagent-driven-development-integration.sh
+
+# Skill-specific tests
+./test-document-review-system.sh
+
+# All skill tests (if run-skill-tests.sh exists)
+./run-skill-tests.sh
+```
+
+### Version Management
+```bash
+# Bump version
+./scripts/bump-version.sh
+
+# Sync to Codex plugin
+./scripts/sync-to-codex-plugin.sh
+```
+
+### Local Development Setup
+1. **Enable local plugin**: Add `"superpowers@superpowers-dev": true` to `~/.claude/settings.json`
+2. **Run from project root**: All commands must execute from `/path/to/superpowers`
+3. **Grant permissions**: Use `--permission-mode bypassPermissions` and `--add-dir` for test directories
+
+## Project Structure
+
+```
+superpowers/
+├── skills/                    # Core skill definitions
+│   ├── brainstorming/        # Requirement gathering
+│   ├── subagent-driven-development/  # Multi-agent coordination
+│   ├── systematic-debugging/ # RCA methodology
+│   ├── document/            # 松立研发文档管理 (custom skill)
+│   └── ... 20+ skills
+├── tests/
+│   ├── claude-code/         # Integration tests
+│   │   ├── test-helpers.sh
+│   │   ├── analyze-token-usage.py
+│   │   └── test-*.sh scripts
+│   └── explicit-skill-requests/
+├── docs/                    # Documentation
+├── hooks/                   # Session lifecycle hooks
+├── scripts/                 # Build/release scripts
+└── .github/                # PR templates, issue templates
+```
+
+## 松立研发 Custom Skill: `document`
+This custom skill implements GitLab Wiki-based document management:
+- **Init**: `/document init <gitlab-wiki-url>`
+- **PRD管理**: `/document:pm [生成|上传]`
+- **功能设计**: `/document:dev [生成|上传]`
+- **测试用例**: `/document:test [生成|上传]`
+- **项目概览**: `/document:overview [生成|更新]`
+
+**Testing this skill**:
+```bash
+# Run existing test scripts
+./skills/document/test-skill.sh
+./skills/document/test-workflow.sh
+
+# Manual testing
+echo "/document init https://gitlab.com/test/wiki" | claude --permission-mode bypassPermissions
+```
+
+## Critical Requirements for PRs
+
+**Before submitting any PR, read the full contributor guidelines below. This project has a 94% PR rejection rate.**
+
+### Mandatory Checks
+1. **Real problem**: Must solve actual experienced issue, not theoretical improvements
+2. **No third-party dependencies**: Core must remain zero-dependency
+3. **Single focus**: One problem per PR, no bundled changes
+4. **Human review**: Complete diff must be reviewed by human partner
+5. **Existing PRs search**: Check both open AND closed PRs for duplicates
+
+### Skill Changes
+- **Evaluation required**: Use `superpowers:writing-skills` and show before/after results
+- **No compliance rewrites**: Don't restructure skills to "comply" with external docs
+- **Behavior preservation**: Don't modify carefully-tuned content without extensive evals
+
+### What Will Be Rejected
+- Domain-specific skills (should be separate plugins)
+- Fork-specific changes
+- Fabricated content or claims
+- Bulk/spray-and-pray PRs
+- Speculative or theoretical fixes
+
+## Troubleshooting
+
+### Skills Not Loading
+```bash
+# Check settings
+cat ~/.claude/settings.json | grep superpowers
+
+# Run from correct directory
+pwd  # Must be /path/to/superpowers
+
+# Use bare mode for debugging
+claude --bare --permission-mode bypassPermissions
+```
+
+### Test Failures
+```bash
+# Increase timeout for long-running tests
+timeout 1800 ./test-*.sh  # 30 minutes
+
+# Check permissions
+--permission-mode bypassPermissions --add-dir /path/to/test/dir
+
+# Find session transcripts
+find ~/.claude/projects -name "*.jsonl" -mmin -60
+```
+
+### Session File Analysis
+```bash
+# Decode project directory path
+echo "/Users/thomasxing/workspace/2026/3月份计划/AI研发/superpowers" | sed 's/\//-/g' | sed 's/^-//'
+# Result: -Users-thomasxing-workspace-2026-3月份计划-AI研发-superpowers
+
+# Locate session file
+SESSION_DIR="$HOME/.claude/projects/-Users-thomasxing-workspace-2026-3月份计划-AI研发-superpowers"
+ls -lt "$SESSION_DIR"/*.jsonl | head -5
+```
+
+---
+
+**The following section is the original contributor guidelines. Read it BEFORE making any changes:**
 
 ## Pull Request Requirements
 

@@ -1,0 +1,7 @@
+{
+  "msgtype": "markdown",
+  "markdown": {
+    "title": "Superpowers技能质量日报",
+    "text": "## 📊 Superpowers技能质量日报（2026-04-24）\n\n### 🎯 核心指标\n**流程闭环率**：75.0% ⚠️\n**平均验证得分**：75.0分 ⚠️\n**技能总数**：8个（通过：6个）\n**发现问题**：2个 ⚠️\n\n### 🚨 告警状态\n**严重告警**：0个 ✅\n**警告提示**：2个 ⚠️\n\n### 📈 今日重点\n⚠️ 发现2个技能问题需要处理：\n- review: 技能目录不存在: review\\n- ship: 技能目录不存在: ship\\n\n\n### 👥 责任人追踪\n- **review**：需要立即处理 @相关责任人\\n- **ship**：需要立即处理 @相关责任人\\n\n### 🔧 行动建议\n1. **立即处理**：修复2个问题技能\n2. **验证确认**：修复后重新运行验证\n3. **预防措施**：建立技能健康度监控\n\n### 🔗 相关链接\n- [查看实时看板](file:///Users/thomasxing/workspace/2026/3月份计划/AI研发/superpowers/scripts/verification/dashboard.html)\n- [查看详细报告](file:///Users/thomasxing/workspace/2026/3月份计划/AI研发/superpowers/scripts/verification/simple_report.md)\n- [运行验证脚本](scripts/verification/simple_check.py)\n\n---\n**生成时间**：2026-04-24 12:05:46\n**播报周期**：每日09:00自动播报\n**责任人**：邢海青\n**目标**：流程闭环率100%，平均分90+\n"
+  }
+}

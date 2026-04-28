@@ -1,0 +1,197 @@
+{
+  "generated_at": "2026-04-24T12:03:40.746981",
+  "metrics": {
+    "process_closed_rate": {
+      "value": 75.0,
+      "target": 100,
+      "status": "warning",
+      "trend": "stable"
+    },
+    "average_score": {
+      "value": 75.0,
+      "target": 100,
+      "status": "warning",
+      "trend": "stable"
+    },
+    "issue_resolution_rate": {
+      "value": 100.0,
+      "target": 100,
+      "status": "good",
+      "trend": "improving"
+    },
+    "skill_activity_rate": {
+      "value": 75.0,
+      "target": 90,
+      "status": "good",
+      "trend": "stable"
+    }
+  },
+  "skills": [
+    {
+      "name": "document",
+      "score": 100,
+      "grade": "优秀",
+      "exists": true,
+      "metadata_ok": true,
+      "category": "核心技能",
+      "owner": "邢海青",
+      "last_validated": "2026-04-24T12:03:40.747006"
+    },
+    {
+      "name": "review",
+      "score": 0,
+      "grade": "不合格",
+      "exists": false,
+      "metadata_ok": false,
+      "category": "质量技能",
+      "owner": "质量团队",
+      "last_validated": "2026-04-24T12:03:40.747010"
+    },
+    {
+      "name": "ship",
+      "score": 0,
+      "grade": "不合格",
+      "exists": false,
+      "metadata_ok": false,
+      "category": "质量技能",
+      "owner": "DevOps团队",
+      "last_validated": "2026-04-24T12:03:40.747014"
+    },
+    {
+      "name": "brainstorming",
+      "score": 100,
+      "grade": "优秀",
+      "exists": true,
+      "metadata_ok": true,
+      "category": "开发技能",
+      "owner": "产品团队",
+      "last_validated": "2026-04-24T12:03:40.747018"
+    },
+    {
+      "name": "qa",
+      "score": 100,
+      "grade": "优秀",
+      "exists": true,
+      "metadata_ok": true,
+      "category": "核心技能",
+      "owner": "测试团队",
+      "last_validated": "2026-04-24T12:03:40.747019"
+    },
+    {
+      "name": "systematic-debugging",
+      "score": 100,
+      "grade": "优秀",
+      "exists": true,
+      "metadata_ok": true,
+      "category": "核心技能",
+      "owner": "技术专家",
+      "last_validated": "2026-04-24T12:03:40.747021"
+    },
+    {
+      "name": "subagent-driven-development",
+      "score": 100,
+      "grade": "优秀",
+      "exists": true,
+      "metadata_ok": true,
+      "category": "核心技能",
+      "owner": "架构团队",
+      "last_validated": "2026-04-24T12:03:40.747022"
+    },
+    {
+      "name": "using-superpowers",
+      "score": 100,
+      "grade": "优秀",
+      "exists": true,
+      "metadata_ok": true,
+      "category": "开发技能",
+      "owner": "所有用户",
+      "last_validated": "2026-04-24T12:03:40.747024"
+    }
+  ],
+  "issues": [
+    {
+      "skill": "review",
+      "type": "missing",
+      "description": "技能目录不存在: review",
+      "priority": "high",
+      "owner": "质量团队",
+      "created_at": "2026-04-24T12:03:40.747012",
+      "status": "open"
+    },
+    {
+      "skill": "ship",
+      "type": "missing",
+      "description": "技能目录不存在: ship",
+      "priority": "high",
+      "owner": "DevOps团队",
+      "created_at": "2026-04-24T12:03:40.747016",
+      "status": "open"
+    }
+  ],
+  "trends": {
+    "weekly": {
+      "dates": [
+        "2026-04-17T12:03:40.747027",
+        "2026-04-18T12:03:40.747030",
+        "2026-04-19T12:03:40.747031",
+        "2026-04-20T12:03:40.747032",
+        "2026-04-21T12:03:40.747033",
+        "2026-04-22T12:03:40.747033",
+        "2026-04-23T12:03:40.747034"
+      ],
+      "closed_rates": [
+        70,
+        72,
+        73,
+        74,
+        74,
+        75,
+        75
+      ],
+      "average_scores": [
+        70,
+        71,
+        72,
+        73,
+        74,
+        74,
+        75
+      ]
+    },
+    "monthly": {
+      "dates": [
+        "2026-01-24T12:03:40.747036",
+        "2026-02-23T12:03:40.747037",
+        "2026-03-25T12:03:40.747037"
+      ],
+      "closed_rates": [
+        65,
+        70,
+        75
+      ],
+      "average_scores": [
+        65,
+        70,
+        75
+      ]
+    }
+  },
+  "alerts": [
+    {
+      "level": "warning",
+      "title": "Process Closed Rate 警告",
+      "message": "当前值: 75.0%，需要关注",
+      "metric": "process_closed_rate",
+      "timestamp": "2026-04-24T12:03:40.747045",
+      "action": "监控改进"
+    },
+    {
+      "level": "warning",
+      "title": "Average Score 警告",
+      "message": "当前值: 75.0%，需要关注",
+      "metric": "average_score",
+      "timestamp": "2026-04-24T12:03:40.747048",
+      "action": "监控改进"
+    }
+  ]
+}
