@@ -83,3 +83,16 @@ For each page visited during a QA session:
 6. **Console** — Run `console --errors` after interactions. Any new JS errors or failed requests?
 7. **Responsiveness** — If relevant, check mobile and tablet viewports.
 8. **Auth boundaries** — What happens when logged out? Different user roles?
+
+---
+
+## CLI QA vs Browser QA 适配
+
+本项目 `/qa` 默认走 CLI 测试框架路径（无真实浏览器）：
+- **适用**：Console/Errors、Functional（代码逻辑）、Performance（单测可覆盖部分）
+- **不适用**：Visual/UI、UX 流程、Accessibility（需真实 DOM）
+
+遇到**必须真实浏览器**的场景时：
+1. 本技能只负责单测/集成测试层
+2. 浏览器实测请调用平台级 `agent-browser` 或 `dogfood` 技能
+3. 回归测试可以是"headless + 断言行为"，不必追求像素级
