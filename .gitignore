@@ -7,3 +7,10 @@ inspo
 triage/
 .qoder/
 .sonli-spec-doc/
+
+# gstack browse build outputs
+browse/dist/
+.*.bun-build
+
+# gstack runtime state (per-user, never committed)
+.gstack/
