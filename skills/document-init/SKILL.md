@@ -57,10 +57,21 @@ docs/ 目录路径层级:
 ## 初始化执行步骤
 
 1. **Git 环境检查**：确认当前目录是 Git 仓库（`git rev-parse --git-dir`）
-2. **配置写入**：创建 / 更新 `.sonli-spec-doc/config.yaml`，写入 `storage.mode: git_repo` 和月度计划
+2. **配置写入（本地，不入库）**：创建 / 更新 `.sonli-spec-doc/config.yaml`，写入 `storage.mode: git_repo` 和月度计划
 3. **目录创建**：创建 `docs/monthly/<活跃计划>/` 下的完整目录结构
 4. **`.gitkeep` 文件**：在每个空目录放置 `.gitkeep` 保证 Git 跟踪
-5. **初始提交**：`git add docs/ .sonli-spec-doc/ && git commit -m "docs: init monthly plan structure for <计划名>"`
+5. **初始提交**：`git add docs/ && git commit -m "docs: init monthly plan structure for <计划名>"`
+
+### ❗ 配置文件安全原则（重要）
+
+**`.sonli-spec-doc/` 必须被 `.gitignore` 排除，绝不入版本库**，原因：
+
+- 可能包含 **内网 IP / GitLab hostname**
+- 可能包含 **个人账号名 / commit_author**
+- 未来可能写入 **glab PAT / API token / SSH key 路径**
+- 初始化时间戳、本机路径等是机器相关状态
+
+**团队同步方式**：每个团队成员在自己的工作区独立执行 `/document-init '<同一计划名>'`，而不是共享 config.yaml。
 
 ```bash
 # 初始化脚本示例（AI 执行此逻辑）
@@ -79,9 +90,13 @@ mkdir -p "docs/knowledge-base/compound"
 # 占位文件
 find docs -type d -empty -exec touch {}/.gitkeep \;
 
-git add docs/ .sonli-spec-doc/
+git add docs/
 git commit -m "docs: init monthly plan structure for ${PLAN}"
 git push
+
+# ❗ 注意：.sonli-spec-doc/ 已被 .gitignore 排除，不会进入版本库
+#    原因：可能包含内网 IP / 个人账号 / 未来的 API token
+#    团队同步：每个成员自己执行 /document-init '<同名计划>'
 ```
 
 ## 配置完整性检查表
@@ -91,6 +106,19 @@ git push
 - [ ] **★ 月度计划配置**：`directories.active_plan` 已设置
 - [ ] 目录结构创建：`docs/monthly/<计划>/pm/prd/` 等子目录已建立
 - [ ] 初始提交完成：`git log --oneline -1` 显示 init 记录
+
+## 与子技能的契约（重要）
+
+**所有 `document-*` 子技能（pm / dev / test / overview / compound）在执行前都会读取本技能创建的配置**，具体契约：
+
+| 检查项 | 来源 | 读取者 |
+|--------|------|--------|
+| `.sonli-spec-doc/config.yaml` | 本技能创建 | 所有 document-* 子技能 |
+| `directories.active_plan` | `/document-init '<名>'` 或 `/document-init plan '<名>'` 写入 | 所有子技能拼接文件路径 |
+| `docs/monthly/<active_plan>/{pm/prd,dev/*,test/*}/` | 本技能初始化时创建 | 各子技能写入对应子目录 |
+| `docs/knowledge-base/compound/` | 本技能初始化时创建 | `document-compound` 归档用 |
+
+**如果未执行本技能**，任何 `/document-pm`、`/document-dev`、`/document-test`、`/document-overview`、`/document-compound` 都会立即报错并引导用户回到本技能完成初始化。
 
 ## 目录结构规范
 

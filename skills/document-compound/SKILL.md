@@ -13,6 +13,56 @@ description: Use when analyzing development cycles for experience summarization,
 
 `document-compound` 是松立研发文档管理系统的经验总结模块，负责开发周期的智能分析、经验总结和知识沉淀。作为团队能力提升的核心引擎，将实践经验转化为可复用的知识和模式。
 
+## ⛳ 初始化配置前置检查（强制）
+
+**执行任何 `/document-compound` 子命令前，必须先完成初始化检查**。未初始化时立即中止当前操作，引导用户执行 `/document-init`，严禁绕过。
+
+### 必检项
+
+- [ ] 当前处于 Git 仓库（`git rev-parse --show-toplevel` 可成功）
+- [ ] `.sonli-spec-doc/config.yaml` 存在
+- [ ] `storage.mode == git_repo`
+- [ ] `directories.active_plan` 已设置（非空）
+- [ ] `docs/knowledge-base/compound/` 目录存在
+- [ ] `docs/monthly/<active_plan>/` 目录存在（用于读取开发周期文档）
+
+### 检查脚本（AI 执行此逻辑）
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "❌ 当前不在 Git 仓库"; exit 1; }
+cd "$REPO_ROOT"
+
+CONFIG=".sonli-spec-doc/config.yaml"
+[ -f "$CONFIG" ] || { echo "❌ 未检测到 $CONFIG，请先执行 /document-init '<月度计划名>'"; exit 1; }
+
+ACTIVE_PLAN=$(grep -E '^[[:space:]]*active_plan:' "$CONFIG" | head -1 | cut -d: -f2- | cut -d'#' -f1 | tr -d '"' | tr -d "'" | xargs)
+[ -n "$ACTIVE_PLAN" ] || { echo "❌ active_plan 未设置，请执行 /document-init plan '<月度计划名>'"; exit 1; }
+
+[ -d "docs/knowledge-base/compound" ] || { echo "❌ 知识库目录缺失：docs/knowledge-base/compound，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+[ -d "docs/monthly/$ACTIVE_PLAN" ] || { echo "❌ docs/monthly/$ACTIVE_PLAN/ 目录缺失，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+
+echo "✅ Compound 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
+```
+
+### 未通过时的统一响应
+
+```
+⚠️ 未检测到文档初始化配置（或知识库目录缺失）
+原因：<config.yaml 缺失 | active_plan 未配置 | compound 目录缺失>
+建议：
+  1. /document-init '2026年4月月度计划'   ← 首次初始化
+  2. /document-init plan '2026年4月月度计划' ← 仅切换活跃计划
+完成后请重新执行本命令。
+```
+
+### 理性化防护
+
+| 漏洞 | 防护 |
+|------|------|
+| "经验总结丢到任意位置" | 禁止：必须进 `docs/knowledge-base/compound/`，便于团队复用 |
+| "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证 git commit 闭环 |
+| "跨计划遥控总结，跳过当前 active_plan" | 禁止：经验总结输入必须来自 `docs/monthly/<active_plan>/` |
+
 ## 核心功能
 
 ### 1. 开发周期智能分析

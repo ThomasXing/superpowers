@@ -13,6 +13,54 @@ description: Use when generating product requirement documents (PRD) for develop
 
 `document-pm` 是松立研发文档管理系统的产品需求文档管理模块，专门负责PRD（产品需求文档）的智能生成、质量评估、版本管理和GitLab Wiki上传。作为独立的技能模块，它专注于产品需求的文档化表达和团队协作。
 
+## ⛳ 初始化配置前置检查（强制）
+
+**执行任何 `/document-pm` 子命令前，必须先完成初始化检查**。未初始化时立即中止当前操作，引导用户执行 `/document-init`，严禁绕过。
+
+### 必检项
+
+- [ ] 当前处于 Git 仓库（`git rev-parse --show-toplevel` 可成功）
+- [ ] `.sonli-spec-doc/config.yaml` 存在
+- [ ] `storage.mode == git_repo`
+- [ ] `directories.active_plan` 已设置（非空）
+- [ ] `docs/monthly/<active_plan>/pm/prd/` 目录存在
+
+### 检查脚本（AI 执行此逻辑）
+
+```bash
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "❌ 当前不在 Git 仓库"; exit 1; }
+cd "$REPO_ROOT"
+
+CONFIG=".sonli-spec-doc/config.yaml"
+[ -f "$CONFIG" ] || { echo "❌ 未检测到 $CONFIG，请先执行 /document-init '<月度计划名>'"; exit 1; }
+
+ACTIVE_PLAN=$(grep -E '^[[:space:]]*active_plan:' "$CONFIG" | head -1 | cut -d: -f2- | cut -d'#' -f1 | tr -d '"' | tr -d "'" | xargs)
+[ -n "$ACTIVE_PLAN" ] || { echo "❌ active_plan 未设置，请执行 /document-init plan '<月度计划名>'"; exit 1; }
+
+[ -d "docs/monthly/$ACTIVE_PLAN/pm/prd" ] || { echo "❌ PRD 目录缺失，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+
+echo "✅ PRD 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
+```
+
+### 未通过时的统一响应
+
+```
+⚠️ 未检测到文档初始化配置（或活跃月度计划未设置）
+原因：<config.yaml 缺失 | active_plan 未配置 | pm/prd 目录缺失>
+建议：
+  1. /document-init '2026年4月月度计划'   ← 首次初始化
+  2. /document-init plan '2026年4月月度计划' ← 仅切换活跃计划
+完成后请重新执行本命令。
+```
+
+### 理性化防护
+
+| 漏洞 | 防护 |
+|------|------|
+| "先生成 PRD，事后再初始化" | 禁止：无 active_plan 时 PRD 路径无法归位 |
+| "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证 git commit 闭环 |
+| "把 PRD 放到任意目录" | 禁止：所有 PRD 必须归属某月度计划 `docs/monthly/<plan>/pm/prd/` |
+
 ## 核心功能
 
 ### 1. 智能PRD生成
