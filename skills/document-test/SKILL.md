@@ -23,7 +23,7 @@ description: Use when creating test cases from design specifications, managing t
 - [ ] `.sonli-spec-doc/config.yaml` 存在
 - [ ] `storage.mode == git_repo`
 - [ ] `directories.active_plan` 已设置（非空）
-- [ ] `docs/monthly/<active_plan>/test/{testcases,test-report}/` 目录存在
+- [ ] `.sonli-spec-doc/<active_plan>/test/{testcases,test-report}/` 目录存在
 
 ### 检查脚本（AI 执行此逻辑）
 
@@ -38,7 +38,7 @@ ACTIVE_PLAN=$(grep -E '^[[:space:]]*active_plan:' "$CONFIG" | head -1 | cut -d: 
 [ -n "$ACTIVE_PLAN" ] || { echo "❌ active_plan 未设置，请执行 /document-init plan '<月度计划名>'"; exit 1; }
 
 for sub in testcases test-report; do
-  [ -d "docs/monthly/$ACTIVE_PLAN/test/$sub" ] || { echo "❌ 测试目录缺失：docs/monthly/$ACTIVE_PLAN/test/$sub，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+  [ -d ".sonli-spec-doc/$ACTIVE_PLAN/test/$sub" ] || { echo "❌ 测试目录缺失：.sonli-spec-doc/$ACTIVE_PLAN/test/$sub，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
 done
 
 echo "✅ Test 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
@@ -114,16 +114,17 @@ digraph tdd_integration {
 - **功能**: 生成测试执行报告
 - **数据**: 测试通过率、缺陷统计、风险评估
 
-### 4. 文档提交管理
-- **格式**: `/document-test 提交`
-- **功能**: 将测试文档提交到仓库 `docs/monthly/<活跃计划>/test/` 对应子目录
-- **版本关联**: Git 历史自动关联测试文档与设计文档版本
+### 4. 文档上传管理（两阶段同步）
+- **格式**: `/document-test 上传 <项目文档路径> --target <testcases|test-report>`
+- **功能**: 将用户指定的测试文档同步到远程文档中心仓库
+- **两阶段同步流程**:
+  1. **本地拷贝**: 将 `<项目文档路径>` 下的 .md 文件拷贝到 `.sonli-spec-doc/<活跃计划>/test/<目标子目录>/`
+  2. **远程同步**: 执行 `.sonli-spec-doc/scripts/sync-to-remote.sh '<活跃计划>'`
 - **命令示例**:
   ```bash
-  TEST_PATH="docs/monthly/$(get_active_plan)/test"
-  git add "$TEST_PATH/"
-  git commit -m "docs(test): add testcases - <功能名称>"
-  git push
+  ACTIVE_PLAN=$(grep 'active_plan:' .sonli-spec-doc/config.yaml | head -1 | cut -d: -f2- | tr -d '"' | tr -d "'" | xargs)
+  cp <用户指定的源路径>/*.md ".sonli-spec-doc/${ACTIVE_PLAN}/test/testcases/"
+  ./.sonli-spec-doc/scripts/sync-to-remote.sh "$ACTIVE_PLAN"
   ```
 
 ## 使用说明
@@ -242,7 +243,7 @@ digraph tdd_integration {
 ### Git 提交集成
 ```bash
 # 生成测试用例后提交到仓库
-TEST_PATH="docs/monthly/$(get_active_plan)/test"
+TEST_PATH=".sonli-spec-doc/$(get_active_plan)/test"
 
 # 提交测试用例
 git add "$TEST_PATH/testcases/"
@@ -292,7 +293,7 @@ git push
 
 2. **文档提交失败**
    - 检查 git 状态：`git status`
-   - 确认目标路径已创建：`ls docs/monthly/<活跃计划>/test/`
+   - 确认目标路径已创建：`ls .sonli-spec-doc/<活跃计划>/test/`
    - 检查 git 权限和远程配置：`git remote -v`
 
 3. **模板无法识别**
@@ -302,7 +303,7 @@ git push
 ### 调试命令
 ```bash
 # 检查测试文档目录
-ls -la docs/monthly/$(cat .sonli-spec-doc/config.yaml | grep active_plan | awk '{print $2}')/test/
+ls -la .sonli-spec-doc/$(cat .sonli-spec-doc/config.yaml | grep active_plan | awk '{print $2}')/test/
 
 # 检查 git 状态
 git status

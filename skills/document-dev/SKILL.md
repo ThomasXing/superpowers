@@ -23,7 +23,7 @@ description: Use when designing technical implementation details from PRD requir
 - [ ] `.sonli-spec-doc/config.yaml` 存在
 - [ ] `storage.mode == git_repo`
 - [ ] `directories.active_plan` 已设置（非空）
-- [ ] `docs/monthly/<active_plan>/dev/{plans,tasks,review-report,test-report}/` 目录存在
+- [ ] `.sonli-spec-doc/<active_plan>/dev/{plans,api,tasks,review-report,test-report}/` 目录存在
 
 ### 检查脚本（AI 执行此逻辑）
 
@@ -37,8 +37,8 @@ CONFIG=".sonli-spec-doc/config.yaml"
 ACTIVE_PLAN=$(grep -E '^[[:space:]]*active_plan:' "$CONFIG" | head -1 | cut -d: -f2- | cut -d'#' -f1 | tr -d '"' | tr -d "'" | xargs)
 [ -n "$ACTIVE_PLAN" ] || { echo "❌ active_plan 未设置，请执行 /document-init plan '<月度计划名>'"; exit 1; }
 
-for sub in plans tasks review-report test-report; do
-  [ -d "docs/monthly/$ACTIVE_PLAN/dev/$sub" ] || { echo "❌ 设计目录缺失：docs/monthly/$ACTIVE_PLAN/dev/$sub，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+for sub in plans api tasks review-report test-report; do
+  [ -d ".sonli-spec-doc/$ACTIVE_PLAN/dev/$sub" ] || { echo "❌ 设计目录缺失：.sonli-spec-doc/$ACTIVE_PLAN/dev/$sub，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
 done
 
 echo "✅ Dev 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
@@ -60,8 +60,8 @@ echo "✅ Dev 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 | 漏洞 | 防护 |
 |------|------|
 | "先写设计文档，事后再初始化" | 禁止：无 active_plan 时设计文档无法关联月度计划 |
-| "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证 git commit 闭环 |
-| "设计放在 PRD 同目录下" | 禁止：设计必须进 `dev/plans`，便于评审和追溯 |
+| "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证配置闭环 |
+| "设计放在 PRD 同目录下" | 禁止：设计必须进 `dev/plans`，API 文档进 `dev/api`，便于评审和追溯 |
 
 ## 核心功能
 
@@ -75,19 +75,27 @@ echo "✅ Dev 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 ### 2. 子文档管理
 - **格式**: `/document-dev 计划|任务|报告 [子命令]`
 - **需求拆解(plans)**: 将PRD拆解为可执行的技术任务
+- **API接口文档(api)**: ★ 生成和管理 API 接口文档
 - **任务分配(tasks)**: 创建开发任务和分配计划
 - **测试验收报告(test report)**: 生成测试验收标准和报告模板
 - **代码审查报告(review report)**: 生成代码审查标准和报告模板
 
-### 3. 设计文档提交
-- **格式**: `/document-dev 提交`
-- **功能**: 将设计文档提交到仓库 `docs/monthly/<活跃计划>/dev/` 对应子目录
-- **版本关联**: Git 历史自动关联设计文档与 PRD 版本
+### 3. 设计文档上传（两阶段同步）
+- **格式**: `/document-dev 上传 <项目文档路径> --target <plans|api|tasks|review-report|test-report>`
+- **功能**: 将用户指定的设计文档同步到远程文档中心仓库
+- **两阶段同步流程**:
+  1. **本地拷贝**：将 `<项目文档路径>` 下的 .md 文件拷贝到 `.sonli-spec-doc/<活跃计划>/dev/<目标子目录>/`
+  2. **远程同步**：执行 `.sonli-spec-doc/scripts/sync-to-remote.sh '<活跃计划>'`
 - **命令示例**:
   ```bash
-  git add docs/monthly/<活跃计划>/dev/
-  git commit -m "docs(dev): add design - <功能名称>"
-  git push
+  ACTIVE_PLAN=$(grep 'active_plan:' .sonli-spec-doc/config.yaml | head -1 | cut -d: -f2- | tr -d '"' | tr -d "'" | xargs)
+  # 上传设计文档到 dev/plans/
+  cp <用户指定的源路径>/*.md ".sonli-spec-doc/${ACTIVE_PLAN}/dev/plans/"
+  ./.sonli-spec-doc/scripts/sync-to-remote.sh "$ACTIVE_PLAN"
+  
+  # 上传 API 文档到 dev/api/
+  cp <用户指定的源路径>/*.md ".sonli-spec-doc/${ACTIVE_PLAN}/dev/api/"
+  ./.sonli-spec-doc/scripts/sync-to-remote.sh "$ACTIVE_PLAN"
   ```
 
 ### 4. 设计评审集成
@@ -96,198 +104,20 @@ echo "✅ Dev 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 - **技术评审**: 组织技术评审会议和记录评审意见
 - **设计优化**: 根据评审意见优化设计文档
 
-## 工程流程集成
-
-### 与PRD流程的深度集成
-
-**核心原则**: 设计必须从PRD衍生，不能凭空设计。颗粒度要对齐。
-
-```dot
-digraph dev_integration {
-    "PRD文档" [shape=box];
-    "功能设计生成" [shape=ellipse];
-    "需求拆解分析" [shape=diamond];
-    "架构设计" [shape=box];
-    "详细设计" [shape=box];
-    "子文档生成" [shape=box];
-    "工程任务分配" [shape=box];
-    "开发实施" [shape=box];
-
-    "PRD文档" -> "功能设计生成";
-    "功能设计生成" -> "需求拆解分析";
-    "需求拆解分析" -> "架构设计" [label="架构决策"];
-    "需求拆解分析" -> "详细设计" [label="详细实现"];
-    "架构设计" -> "子文档生成";
-    "详细设计" -> "子文档生成";
-    "子文档生成" -> "工程任务分配";
-    "工程任务分配" -> "开发实施";
-}
-```
-
-### 与测试流程的集成
-1. **测试用例生成**: 设计文档作为测试用例输入
-2. **验收标准传递**: 设计验收标准同步到测试报告
-3. **变更影响分析**: 设计变更对测试用例的影响分析
-
-### 与项目管理的集成
-1. **进度追踪**: 设计进度同步到项目概览
-2. **风险识别**: 设计阶段识别的技术风险上报
-3. **资源协调**: 设计阶段识别的资源需求协调
-
-## 功能设计完整性检查表
-
-**没有完整性的设计就是技术债。3.25必须对齐，owner意识要到位。**
-
-- [ ] **设计目标对齐**: 设计目标与PRD需求完全对齐
-- [ ] **架构合理性**: 架构设计合理，模块划分清晰
-- [ ] **接口规范化**: 接口设计规范，数据格式明确
-- [ ] **详细设计完整**: 关键算法、数据结构、状态流转完整
-- [ ] **部署方案可行**: 部署方案完整，环境要求明确
-- [ ] **性能考虑充分**: 性能设计考虑充分，指标可测量
-- [ ] **安全设计到位**: 安全设计考虑全面，防护措施明确
-- [ ] **可维护性设计**: 代码结构清晰，维护成本可控
-- [ ] **可扩展性设计**: 架构支持未来扩展，耦合度合理
-- [ ] **兼容性设计**: 兼容性考虑充分，升级路径明确
-
-**任何一项缺失都必须补充，不能以"开发中优化"为借口。没有闭环就没有质量。**
-
-## 功能设计模板
-
-```markdown
-# 功能设计文档
-
-## 1. 设计目标
-- **对齐PRD**: [相关PRD文档链接]
-- **解决什么问题**: [具体问题描述]
-- **达到什么效果**: [具体效果指标]
-- **成功标准**: [可测量的成功标准]
-
-## 2. 系统架构
-- **模块划分**: [模块层次图]
-- **数据流图**: [数据流向示意图]
-- **接口设计**: [内部/外部接口设计]
-- **技术栈选择**: [技术选型和理由]
-
-## 3. 详细设计
-- **关键算法**: [核心算法描述和伪代码]
-- **数据结构**: [关键数据结构设计]
-- **状态流转**: [系统状态机设计]
-- **业务流程**: [具体业务流程图]
-
-## 4. 接口规范
-- **API设计**: [REST/GraphQL等API设计]
-- **数据格式**: [请求/响应数据格式]
-- **错误处理**: [错误码和错误处理机制]
-- **认证授权**: [认证授权方案设计]
-
-## 5. 部署方案
-- **环境要求**: [开发/测试/生产环境要求]
-- **部署步骤**: [详细部署步骤]
-- **监控指标**: [关键监控指标定义]
-- **运维方案**: [运维策略和应急方案]
-
-## 6. 性能设计
-- **性能指标**: [具体性能指标要求]
-- **优化策略**: [性能优化策略]
-- **压测方案**: [压力测试方案]
-- **容量规划**: [容量评估和规划]
-
-## 7. 安全设计
-- **安全威胁**: [识别的主要安全威胁]
-- **防护措施**: [具体防护措施]
-- **合规要求**: [需要满足的合规要求]
-- **审计日志**: [安全审计日志设计]
-
-## 8. 测试设计
-- **单元测试**: [单元测试策略]
-- **集成测试**: [集成测试策略]
-- **性能测试**: [性能测试策略]
-- **安全测试**: [安全测试策略]
-
-## 9. 风险评估
-- **技术风险**: [技术实现风险]
-- **进度风险**: [项目进度风险]
-- **资源风险**: [资源需求风险]
-- **应对策略**: [风险应对策略]
-```
-
-## 与superpowers技能深度集成
-
-### 1. 与systematic-debugging集成
-- **设计缺陷预防**: 在design阶段应用systematic-debugging方法论
-- **根因分析**: 对复杂设计决策进行根因分析
-- **验证闭环**: 设计验证形成闭环，不留隐患
-
-### 2. 与test-driven-development集成
-- **测试驱动设计**: 应用TDD思想进行API和接口设计
-- **可测试性设计**: 设计阶段考虑可测试性
-- **测试用例先行**: 重要接口先设计测试用例
-
-### 3. 与code-review技能集成
-- **设计评审**: 组织正式的设计评审会议
-- **代码审查标准**: 基于设计制定代码审查标准
-- **质量门禁**: 设计质量作为代码提交的门禁
-
-### 4. 与document-pm集成
-- **需求追溯**: 设计文档与PRD需求建立双向追溯
-- **变更联动**: PRD变更时自动触发设计变更评估
-- **状态同步**: 设计状态与PRD状态同步
-
-## 常见的理性化漏洞及防护
-
-| 漏洞 | 防护措施 |
-|------|----------|
-| "先开发后补文档" | **强制前置**: 没有设计文档不能开始开发 |
-| "设计太细浪费时间" | **强制细节**: 设计不细就是技术债 |
-| "架构可以后续优化" | **强制优化**: 架构问题必须在设计阶段解决 |
-| "测试用例开发时再写" | **强制前置**: 测试设计必须同步 |
-| "这个设计就内部用" | **强制标准**: 内部设计更要标准化 |
-
-**理性化的本质是质量妥协。今天妥协一点，明天债台高筑。**
-
-## Git 提交使用方式
+## 两阶段同步使用方式
 
 ```bash
 # 生成设计文档（AI 写入对应目录）
-DEV_PATH="docs/monthly/$(get_active_plan)/dev"
+DEV_PATH=".sonli-spec-doc/$(grep 'active_plan:' .sonli-spec-doc/config.yaml | head -1 | cut -d: -f2- | tr -d '"' | tr -d "'" | xargs)/dev"
 
-# 提交设计文档
-git add "$DEV_PATH/"
-git commit -m "docs(dev): add design - <功能名称>"
-git push
+# 同步设计文档到远程文档中心仓库
+./.sonli-spec-doc/scripts/sync-to-remote.sh "$(grep 'active_plan:' .sonli-spec-doc/config.yaml | head -1 | cut -d: -f2- | tr -d '"' | tr -d "'" | xargs)"
 ```
-
-## 性能指标
-
-| 指标 | 目标值 | 说明 |
-|------|--------|------|
-| 设计生成时间 | < 30分钟 | 从PRD到完整设计文档 |
-| 设计完整性 | > 95% | 设计完整性检查得分 |
-| 评审通过率 | > 90% | 设计评审一次通过率 |
-| 需求覆盖率 | 100% | PRD需求在设计中的覆盖率 |
-| 变更影响度 | < 10% | 设计变更对已开发代码的影响 |
-
-## 测试用例
-
-### 设计质量测试
-1. **完整性测试**: 验证设计文档的完整性
-2. **一致性测试**: 验证设计与PRD的一致性
-3. **可行性测试**: 验证设计方案的可行性
-
-### 流程集成测试
-1. **PRD→设计测试**: 验证PRD到设计的转换流程
-2. **设计→开发测试**: 验证设计到开发的衔接流程
-3. **变更传导测试**: 验证PRD变更对设计的影响传导
-
-### 技能集成测试
-1. **debugging集成测试**: 验证与systematic-debugging的集成
-2. **TDD集成测试**: 验证与test-driven-development的集成
-3. **review集成测试**: 验证与code-review技能的集成
 
 ---
 **子智能体标识**: document-dev-agent  
-**版本**: 2.0.0  
+**版本**: 3.0.0  
 **创建时间**: 2026-04-22  
-**依赖**: GitLab CLI、superpowers脚本库、PRD文档、superpowers技能集  
+**依赖**: Git、远程文档中心仓库、PRD文档、superpowers技能集  
 **状态**: 就绪  
 **owner**: 架构师/技术负责人

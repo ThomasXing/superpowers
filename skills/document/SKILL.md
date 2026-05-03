@@ -497,22 +497,26 @@ digraph owner_responsibility {
 ## 目录结构规范
 
 ```
-wit-parking-wiki/              # GitLab Wiki项目协作文档目录
-├── pm/
-│   └── prd/                   # 产品需求文档（优化后简化路径）
-├── dev/
-│   ├── plans/                # 需求拆解
-│   ├── tasks/                # 任务分配
-│   ├── test report/          # 测试验收报告
-│   └── review report/        # 代码审查报告
-├── test/
-│   ├── testcases/            # 测试用例
-│   └── test report/          # 测试验收报告
-├── knowledge-base/
-│   └── compound/             # 开发经验总结（新增）
-├── DESIGN.md                 # UI/UX设计规范
-├── overview.md               # 项目进度报告（每天钉钉播报）
-└── CHANGELOG.md             # 项目变更日志
+.sonli-spec-doc/                        # 本地文档工作区（不入代码仓库）
+├── config.yaml                         # 配置（含远程文档中心仓库地址）
+├── templates/
+├── scripts/
+│   └── sync-to-remote.sh               # ★ 同步到远程文档中心仓库
+├── <月度计划名称>/                       # 示例：2026年5月月度计划
+│   ├── pm/
+│   │   └── prd/                        # 产品需求文档
+│   ├── dev/
+│   │   ├── plans/                      # 需求拆解
+│   │   ├── api/                        # ★ API 接口文档
+│   │   ├── tasks/                      # 任务分配
+│   │   ├── test-report/                # 测试验收报告
+│   │   └── review-report/              # 代码审查报告
+│   ├── test/
+│   │   ├── testcases/                  # 测试用例
+│   │   └── test-report/                # 测试报告
+│   └── overview.md                     # 项目进度报告
+└── knowledge-base/
+    └── compound/                        # 开发经验总结
 ```
 
 ## 使用说明
