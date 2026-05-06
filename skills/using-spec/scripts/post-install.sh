@@ -14,7 +14,50 @@ set -euo pipefail
 # SKILL_REPO_ROOT: root of the cloned spec-kit repository (set by npx skills or fallback)
 # SKILL_TARGET_DIR: where skills should be installed (set by npx skills or fallback)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="${SKILL_REPO_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
+
+# Multi-level fallback to find the spec-kit repo root containing skills/:
+#   1. SKILL_REPO_ROOT env var (set by npx skills add during remote install)
+#   2. git rev-parse --show-toplevel (works when run inside a git repo)
+#   3. Walk up from script location looking for skills/ dir AND .git marker
+#   4. Current working directory
+#   5. Assume 4 levels up from scripts/ (last resort)
+find_repo_root() {
+    # Priority 1: explicit env var from npx skills add
+    if [ -n "${SKILL_REPO_ROOT:-}" ] && [ -d "$SKILL_REPO_ROOT/skills" ]; then
+        echo "$SKILL_REPO_ROOT"
+        return
+    fi
+
+    # Priority 2: git repo toplevel (works for local dev and most remote installs)
+    local git_root
+    if git_root="$(git rev-parse --show-toplevel 2>/dev/null)" && [ -d "$git_root/skills" ]; then
+        echo "$git_root"
+        return
+    fi
+
+    # Priority 3: walk up from script location looking for skills/ + .git marker
+    # (requires .git to avoid matching .qoder/skills/ which is not the real repo root)
+    local dir="$SCRIPT_DIR"
+    while [ "$dir" != "/" ]; do
+        if [ -d "$dir/skills" ] && [ -f "$dir/skills/using-spec/SKILL.md" ] && [ -d "$dir/.git" ]; then
+            echo "$dir"
+            return
+        fi
+        dir="$(dirname "$dir")"
+    done
+
+    # Priority 4: check current working directory
+    local cwd="$(pwd)"
+    if [ -d "$cwd/skills" ] && [ -f "$cwd/skills/using-spec/SKILL.md" ]; then
+        echo "$cwd"
+        return
+    fi
+
+    # Priority 5: assume 4 levels up from scripts/ (local dev layout, last resort)
+    echo "$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+}
+
+REPO_ROOT="$(find_repo_root)"
 TARGET_DIR="${SKILL_TARGET_DIR:-.qoder/skills}"
 
 SKILLS_SOURCE="$REPO_ROOT/skills"
