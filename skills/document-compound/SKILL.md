@@ -23,8 +23,8 @@ description: Use when analyzing development cycles for experience summarization,
 - [ ] `.sonli-spec-doc/config.yaml` 存在
 - [ ] `storage.mode == git_repo`
 - [ ] `directories.active_plan` 已设置（非空）
-- [ ] `.sonli-spec-doc/knowledge-base/compound/` 目录存在
-- [ ] `.sonli-spec-doc/<active_plan>/` 目录存在（用于读取开发周期文档）
+- [ ] `docs/knowledge-base/compound/` 目录存在
+- [ ] `docs/monthly/<active_plan>/` 目录存在（用于读取开发周期文档）
 
 ### 检查脚本（AI 执行此逻辑）
 
@@ -38,8 +38,8 @@ CONFIG=".sonli-spec-doc/config.yaml"
 ACTIVE_PLAN=$(grep -E '^[[:space:]]*active_plan:' "$CONFIG" | head -1 | cut -d: -f2- | cut -d'#' -f1 | tr -d '"' | tr -d "'" | xargs)
 [ -n "$ACTIVE_PLAN" ] || { echo "❌ active_plan 未设置，请执行 /document-init plan '<月度计划名>'"; exit 1; }
 
-[ -d ".sonli-spec-doc/knowledge-base/compound" ] || { echo "❌ 知识库目录缺失：.sonli-spec-doc/knowledge-base/compound，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
-[ -d ".sonli-spec-doc/$ACTIVE_PLAN" ] || { echo "❌ .sonli-spec-doc/$ACTIVE_PLAN/ 目录缺失，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+[ -d "docs/knowledge-base/compound" ] || { echo "❌ 知识库目录缺失：docs/knowledge-base/compound，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+[ -d "docs/monthly/$ACTIVE_PLAN" ] || { echo "❌ docs/monthly/$ACTIVE_PLAN/ 目录缺失，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
 
 echo "✅ Compound 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 ```
@@ -59,9 +59,9 @@ echo "✅ Compound 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 
 | 漏洞 | 防护 |
 |------|------|
-| "经验总结丢到任意位置" | 禁止：必须进 `.sonli-spec-doc/knowledge-base/compound/`，便于团队复用 |
+| "经验总结丢到任意位置" | 禁止：必须进 `docs/knowledge-base/compound/`，便于团队复用 |
 | "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证 git commit 闭环 |
-| "跨计划遥控总结，跳过当前 active_plan" | 禁止：经验总结输入必须来自 `.sonli-spec-doc/<active_plan>/` |
+| "跨计划遥控总结，跳过当前 active_plan" | 禁止：经验总结输入必须来自 `docs/monthly/<active_plan>/` |
 
 ## 核心功能
 
@@ -91,29 +91,31 @@ echo "✅ Compound 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 - **工作流模式识别**: 识别高效的工作流程和协作模式
 - **问题模式识别**: 识别重复出现的问题和解决方案模式
 
-## 两阶段同步集成
+## Git 提交集成
 
-**底层逻辑**：经验总结写入本地工作区，通过 sync-to-remote.sh 同步到远程文档中心仓库。
+**底层逻辑**：经验总结归档到仓库知识库，利用 Git 历史沉淀、追溯每次更新。
 
 ```bash
-# 生成经验总结后同步到远程文档中心仓库
-KB_PATH=".sonli-spec-doc/knowledge-base/compound"
-ACTIVE_PLAN=$(grep 'active_plan:' .sonli-spec-doc/config.yaml | head -1 | cut -d: -f2- | tr -d '"' | tr -d "'" | xargs)
+# 生成经验总结后归档到知识库
+KB_PATH="docs/knowledge-base/compound"
 
-# AI 写入经验总结到 KB_PATH 后同步
-./.sonli-spec-doc/scripts/sync-to-remote.sh "$ACTIVE_PLAN"
+# 提交经验总结
+git add "$KB_PATH/"
+git commit -m "docs(compound): add experience - <主题名称>"
+git push
 ```
 
 ### 与月度开发周期关联
 ```bash
 # 归档指定周期的所有文档
-PLAN_PATH=".sonli-spec-doc/$ACTIVE_PLAN"
+PLAN_PATH="docs/monthly/$(get_active_plan)"
 
 # 生成经验总结（基于周期内所有文档）
 # AI 读取 $PLAN_PATH 下所有子目录后写入 $KB_PATH/
 
-# 同步知识库到远程文档中心仓库
-./.sonli-spec-doc/scripts/sync-to-remote.sh "$ACTIVE_PLAN"
+git add "docs/knowledge-base/"
+git commit -m "docs(compound): summarize cycle - $(get_active_plan)"
+git push
 ```
 
 ## 经验沉淀闭环

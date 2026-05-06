@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spec Doc 协同工程全流程教程</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* ===== MANDATORY BASE ===== */
+        html, body { height: 100%; overflow-x: hidden; margin: 0; }
+        html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+        .slide {
+            width: 100vw; height: 100vh; height: 100dvh;
+            overflow: hidden; scroll-snap-align: start;
+            display: flex; flex-direction: column; position: relative;
+        }
+        .slide-content {
+            flex: 1; display: flex; flex-direction: column;
+            justify-content: center; max-height: 100%; overflow: hidden;
+            padding: var(--slide-padding);
+        }
+        :root {
+            --title-size: clamp(1.8rem, 5vw, 4rem);
+            --h2-size: clamp(1.4rem, 3.5vw, 2.5rem);
+            --h3-size: clamp(1.1rem, 2.5vw, 1.75rem);
+            --body-size: clamp(0.8rem, 1.5vw, 1.125rem);
+            --code-size: clamp(0.7rem, 1.2vw, 0.95rem);
+            --small-size: clamp(0.65rem, 1vw, 0.875rem);
+            --slide-padding: clamp(1.5rem, 4vw, 4rem);
+            --content-gap: clamp(0.75rem, 2vw, 2rem);
+            --element-gap: clamp(0.4rem, 1vw, 1rem);
+        }
+        img, .image-container {
+            max-width: 100%; max-height: min(50vh, 400px); object-fit: contain;
+        }
+        @media (max-height: 700px) {
+            :root { --slide-padding: clamp(0.75rem, 3vw, 2rem); --content-gap: clamp(0.4rem, 1.5vw, 1rem); --title-size: clamp(1.4rem, 4.5vw, 2.5rem); --h2-size: clamp(1.1rem, 3vw, 1.75rem); }
+        }
+        @media (max-height: 600px) {
+            :root { --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem); --content-gap: clamp(0.3rem, 1vw, 0.75rem); --title-size: clamp(1.1rem, 4vw, 2rem); --body-size: clamp(0.7rem, 1.2vw, 0.95rem); }
+            .nav-dots, .keyboard-hint, .slide-badge { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+            html { scroll-behavior: auto; }
+        }
+
+        /* ===== SWISS MODERN THEME ===== */
+        :root {
+            --bg: #ffffff; --fg: #1a1a1a; --accent: #e63946;
+            --muted: #6b7280; --grid: #e5e7eb; --code-bg: #f3f4f6;
+            --card-bg: #fafafa; --border: #d1d5db;
+        }
+        body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: var(--fg); }
+        code, pre, .cmd { font-family: 'JetBrains Mono', monospace; }
+
+        /* Slide backgrounds */
+        .slide-dark { background: var(--fg); color: var(--bg); }
+        .slide-dark .slide-subtitle, .slide-dark .slide-body, .slide-dark .step-desc { color: #cbd5e1; }
+        .slide-dark .cmd { background: rgba(255,255,255,0.08); color: #f8fafc; }
+        .slide-dark .screenshot-placeholder { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.03); }
+
+        /* Typography */
+        .slide-title { font-size: var(--title-size); font-weight: 900; line-height: 1.15; letter-spacing: -0.02em; margin: 0; }
+        .slide-h2 { font-size: var(--h2-size); font-weight: 700; line-height: 1.2; margin: 0 0 var(--element-gap) 0; }
+        .slide-subtitle { font-size: var(--h3-size); font-weight: 500; color: var(--muted); line-height: 1.4; margin: 0; }
+        .slide-body { font-size: var(--body-size); line-height: 1.6; color: var(--muted); margin: 0; }
+        .step-desc { font-size: var(--small-size); color: var(--muted); line-height: 1.5; margin: 0; }
+
+        /* Command block */
+        .cmd-block { margin: var(--element-gap) 0; }
+        .cmd {
+            display: block; background: var(--code-bg); padding: clamp(0.6rem, 1.5vw, 1rem) clamp(0.8rem, 2vw, 1.25rem);
+            border-radius: 6px; font-size: var(--code-size); color: var(--fg); border-left: 3px solid var(--accent);
+            word-break: break-all; line-height: 1.5;
+        }
+        .cmd-label { font-size: var(--small-size); color: var(--muted); margin-bottom: 0.3rem; font-weight: 500; }
+
+        /* Screenshot placeholder */
+        .screenshot-placeholder {
+            border: 2px dashed var(--border); border-radius: 8px;
+            background: var(--card-bg); min-height: clamp(120px, 25vh, 280px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: var(--element-gap); padding: var(--element-gap); margin-top: var(--element-gap);
+            text-align: center;
+        }
+        .screenshot-placeholder .ss-icon { font-size: clamp(1.5rem, 4vw, 2.5rem); opacity: 0.4; }
+        .screenshot-placeholder .ss-text { font-size: var(--small-size); color: var(--muted); max-width: 80%; }
+        .screenshot-placeholder .ss-hint { font-size: var(--small-size); color: var(--accent); font-weight: 500; }
+
+        /* Grid layout */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); align-items: start; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+        /* Feature cards */
+        .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--element-gap); }
+        @media (max-width: 900px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .feature-grid { grid-template-columns: 1fr; } }
+        .feature-card { background: var(--card-bg); border: 1px solid var(--grid); border-radius: 8px; padding: var(--element-gap); }
+        .feature-card h4 { margin: 0 0 0.3rem 0; font-size: var(--body-size); font-weight: 700; }
+        .feature-card p { margin: 0; font-size: var(--small-size); color: var(--muted); }
+
+        /* Table */
+        .data-table { width: 100%; border-collapse: collapse; font-size: var(--small-size); margin-top: var(--element-gap); }
+        .data-table th, .data-table td { padding: clamp(0.4rem, 1vw, 0.6rem); text-align: left; border-bottom: 1px solid var(--grid); }
+        .data-table th { font-weight: 600; color: var(--fg); background: var(--card-bg); }
+        .data-table td { color: var(--muted); }
+
+        /* Navigation */
+        .nav-dots { position: fixed; right: 1.5rem; top: 50%; transform: translateY(-50%); z-index: 100; display: flex; flex-direction: column; gap: 0.5rem; }
+        .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); cursor: pointer; transition: all 0.2s; border: none; padding: 0; }
+        .nav-dot.active { background: var(--accent); transform: scale(1.3); }
+        .keyboard-hint { position: fixed; bottom: 1rem; right: 1.5rem; font-size: 0.7rem; color: var(--muted); z-index: 100; opacity: 0.6; }
+
+        /* Slide badge */
+        .slide-badge { position: absolute; top: var(--slide-padding); left: var(--slide-padding); font-size: var(--small-size); font-weight: 600; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; }
+        .slide-number { position: absolute; bottom: var(--slide-padding); right: var(--slide-padding); font-size: var(--small-size); color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+        /* Accent bar */
+        .accent-bar { width: 60px; height: 4px; background: var(--accent); margin-bottom: var(--element-gap); }
+
+        /* Reveal animation */
+        .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        /* List */
+        .check-list { list-style: none; padding: 0; margin: var(--element-gap) 0 0 0; display: flex; flex-direction: column; gap: 0.5rem; }
+        .check-list li { display: flex; align-items: flex-start; gap: 0.5rem; font-size: var(--body-size); }
+        .check-list li::before { content: "☐"; color: var(--accent); font-weight: 600; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ===== SLIDE 1: COVER ===== -->
+<section class="slide slide-dark" id="slide-1">
+    <div class="slide-content" style="align-items: center; text-align: center;">
+        <div class="reveal">
+            <div style="font-size: var(--small-size); color: var(--accent); letter-spacing: 0.1em; margin-bottom: var(--element-gap);">TUTORIAL</div>
+            <h1 class="slide-title" style="max-width: 900px;">Spec Doc 协同工程<br>全流程教程</h1>
+            <div class="accent-bar" style="margin: var(--content-gap) auto;"></div>
+            <p class="slide-subtitle" style="max-width: 600px; margin: 0 auto;">从项目初始化到知识沉淀的六大阶段标准化工作流<br>附真实操作步骤截图采集指南</p>
+            <p style="margin-top: var(--content-gap); font-size: var(--small-size); color: #64748b;">松立研发文档协同体系 v3.0</p>
+        </div>
+    </div>
+    <div class="slide-number">01 / 18</div>
+</section>
+
+<!-- ===== SLIDE 2: OVERVIEW ===== -->
+<section class="slide" id="slide-2">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">系统概述</div>
+            <h2 class="slide-h2">什么是 Spec Doc 协同工程？</h2>
+            <p class="slide-body" style="max-width: 800px;">将产品需求、功能设计、测试用例、项目概览和知识沉淀五大环节串联成标准化工作流，确保文档与代码同仓管理、版本同步、团队协同。</p>
+            <div class="feature-grid" style="margin-top: var(--content-gap);">
+                <div class="feature-card">
+                    <h4 style="color: var(--accent);">📋 标准化</h4>
+                    <p>统一的目录结构、文档模板和提交规范</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="color: var(--accent);">🔗 可追溯</h4>
+                    <p>Git 历史追踪每次文档变更，PRD→设计→测试全链路关联</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="color: var(--accent);">🤝 团队协同</h4>
+                    <p>产品经理、开发组、测试组、项目经理各司其职</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="color: var(--accent);">☁️ 远程同步</h4>
+                    <p>本地文档通过两阶段同步推送至远程文档中心仓库</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="color: var(--accent);">🧠 知识沉淀</h4>
+                    <p>每个开发周期的经验自动归档为团队知识库</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="color: var(--accent);">📊 进度透明</h4>
+                    <p>自动化进度收集与钉钉播报，消除信息孤岛</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">02 / 18</div>
+</section>
+
+<!-- ===== SLIDE 3: SKILL MATRIX ===== -->
+<section class="slide" id="slide-3">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">技能矩阵</div>
+            <h2 class="slide-h2">六大核心技能</h2>
+            <table class="data-table">
+                <thead>
+                    <tr><th>技能</th><th>触发命令</th><th>负责人</th><th>产出物</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>document-init</strong></td><td><code>/document-init '&lt;计划&gt;'</code></td><td>基础设施</td><td>目录结构 + config.yaml</td></tr>
+                    <tr><td><strong>document-pm</strong></td><td><code>/document-pm 生成 "需求"</code></td><td>产品经理</td><td>PRD 文档</td></tr>
+                    <tr><td><strong>document-dev</strong></td><td><code>/document-dev 生成 "功能"</code></td><td>开发组</td><td>设计文档 + 任务</td></tr>
+                    <tr><td><strong>document-test</strong></td><td><code>/document-test 生成 "场景"</code></td><td>测试组</td><td>测试用例 + 报告</td></tr>
+                    <tr><td><strong>document-overview</strong></td><td><code>/document-overview 生成</code></td><td>项目经理</td><td>overview.md + 播报</td></tr>
+                    <tr><td><strong>document-compound</strong></td><td><code>/document-compound 生成</code></td><td>知识管理</td><td>经验总结报告</td></tr>
+                </tbody>
+            </table>
+            <p class="step-desc" style="margin-top: var(--element-gap);">⚠️ <strong>关键原则</strong>：所有子技能执行前都会强制检查初始化状态，未初始化时立即中止并引导执行 /document-init</p>
+        </div>
+    </div>
+    <div class="slide-number">03 / 18</div>
+</section>
+
+<!-- ===== SLIDE 4: DIRECTORY STRUCTURE ===== -->
+<section class="slide" id="slide-4">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">目录结构</div>
+            <h2 class="slide-h2">文档目录层级</h2>
+            <div class="two-col" style="align-items: center;">
+                <div>
+                    <pre class="cmd" style="white-space: pre-wrap; line-height: 1.7; font-size: var(--code-size);">docs/
+├── monthly/
+│   └── 2026年5月月度计划/
+│       ├── pm/prd/          ← PRD
+│       ├── dev/
+│       │   ├── plans/       ← 设计
+│       │   ├── tasks/       ← 任务
+│       │   ├── test-report/
+│       │   └── review-report/
+│       ├── test/
+│       │   ├── testcases/   ← 用例
+│       │   └── test-report/
+│       └── overview.md      ← 概览
+└── knowledge-base/
+    └── compound/            ← 知识沉淀</pre>
+                </div>
+                <div class="screenshot-placeholder">
+                    <div class="ss-icon">📁</div>
+                    <div class="ss-text">执行 <code>/document-init '2026年5月月度计划'</code> 后，在终端执行 <code>tree docs/</code> 或 <code>ls -R docs/</code> 查看生成的目录结构</div>
+                    <div class="ss-hint">【截图采集点 #1】初始化后的目录结构</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">04 / 18</div>
+</section>
+
+<!-- ===== SLIDE 5: INIT COMMAND ===== -->
+<section class="slide" id="slide-5">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">阶段 1 / 6</div>
+            <h2 class="slide-h2">项目初始化</h2>
+            <p class="slide-body">首次使用或切换月度计划时执行。AI 会自动检查 Git 环境、创建配置、生成目录结构并执行初始提交。</p>
+            <div class="cmd-block">
+                <div class="cmd-label">首次初始化</div>
+                <code class="cmd">/document-init '2026年5月月度计划'</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">切换活跃计划</div>
+                <code class="cmd">/document-init plan '2026年6月月度计划'</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">查看当前计划</div>
+                <code class="cmd">/document-init plan current</code>
+            </div>
+            <div class="screenshot-placeholder">
+                <div class="ss-icon">📸</div>
+                <div class="ss-text">在 IDE 聊天框中输入 <code>/document-init '2026年5月月度计划'</code> 并回车，截取 AI 执行初始化过程的完整对话界面</div>
+                <div class="ss-hint">【截图采集点 #2】document-init 执行过程</div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">05 / 18</div>
+</section>
+
+<!-- ===== SLIDE 6: INIT CHECKLIST ===== -->
+<section class="slide" id="slide-6">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">阶段 1 / 6</div>
+            <h2 class="slide-h2">初始化检查清单</h2>
+            <div class="two-col">
+                <div>
+                    <ul class="check-list">
+                        <li>Git 仓库检查通过</li>
+                        <li>.sonli-spec-doc/config.yaml 已创建</li>
+                        <li>directories.active_plan 已设置</li>
+                        <li>docs/monthly/&lt;计划&gt;/ 下所有子目录已建立</li>
+                        <li>空目录已放置 .gitkeep</li>
+                        <li>初始 git commit 已完成</li>
+                    </ul>
+                    <p class="step-desc" style="margin-top: var(--content-gap);">⚠️ <strong>安全原则</strong>：.sonli-spec-doc/ 已被 .gitignore 排除，<strong>不入代码仓库</strong>。团队成员需各自执行初始化。</p>
+                </div>
+                <div class="screenshot-placeholder">
+                    <div class="ss-icon">📸</div>
+                    <div class="ss-text">执行 <code>cat .sonli-spec-doc/config.yaml</code> 查看配置文件内容，或执行 <code>git log --oneline -3</code> 查看初始提交记录</div>
+                    <div class="ss-hint">【截图采集点 #3】config.yaml 与 git 提交记录</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">06 / 18</div>
+</section>
+
+<!-- ===== SLIDE 7: PM COMMAND ===== -->
+<section class="slide slide-dark" id="slide-7">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">阶段 2 / 6</div>
+            <h2 class="slide-h2">PRD 需求文档</h2>
+            <p class="slide-body">产品经理主导。将需求描述转化为标准化的 PRD 文档，颗粒度必须拉到函数级。</p>
+            <div class="cmd-block">
+                <div class="cmd-label">生成 PRD</div>
+                <code class="cmd">/document-pm 生成 "用户登录功能：支持手机号+验证码登录，需要防暴力破解机制"</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">提交到仓库</div>
+                <code class="cmd">/document-pm 提交</code>
+            </div>
+            <div class="screenshot-placeholder">
+                <div class="ss-icon">📸</div>
+                <div class="ss-text">截取 AI 生成 PRD 文档的完整过程，包括需求澄清提问、PRD 内容输出、以及文档保存路径提示</div>
+                <div class="ss-hint">【截图采集点 #4】document-pm 生成 PRD 过程</div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">07 / 18</div>
+</section>
+
+<!-- ===== SLIDE 8: PM OUTPUT ===== -->
+<section class="slide" id="slide-8">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">阶段 2 / 6</div>
+            <h2 class="slide-h2">PRD 文档产出</h2>
+            <p class="slide-body">PRD 必须包含以下章节，任何一项缺失都必须补充：</p>
+            <div class="two-col" style="margin-top: var(--element-gap);">
+                <div>
+                    <ul class="check-list">
+                        <li>需求背景</li>
+                        <li>目标与范围</li>
+                        <li>功能需求（函数级颗粒度）</li>
+                        <li>非功能需求</li>
+                        <li>验收标准</li>
+                        <li>交付计划</li>
+                        <li>术语定义</li>
+                        <li>原型/设计</li>
+                    </ul>
+                </div>
+                <div class="screenshot-placeholder">
+                    <div class="ss-icon">📸</div>
+                    <div class="ss-text">打开生成的 PRD 文件（如 <code>docs/monthly/2026年5月月度计划/pm/prd/用户登录.md</code>），截取文档头部和核心章节</div>
+                    <div class="ss-hint">【截图采集点 #5】生成的 PRD 文档内容</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">08 / 18</div>
+</section>
+
+<!-- ===== SLIDE 9: DEV COMMAND ===== -->
+<section class="slide slide-dark" id="slide-9">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">阶段 3 / 6</div>
+            <h2 class="slide-h2">功能设计文档</h2>
+            <p class="slide-body">开发组主导。基于 PRD 生成详细的技术设计方案，设计必须从 PRD 衍生，不能凭空设计。</p>
+            <div class="cmd-block">
+                <div class="cmd-label">生成设计文档</div>
+                <code class="cmd">/document-dev 生成 "用户登录功能设计"</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">需求拆解</div>
+                <code class="cmd">/document-dev 计划</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">提交设计</div>
+                <code class="cmd">/document-dev 提交</code>
+            </div>
+            <div class="screenshot-placeholder">
+                <div class="ss-icon">📸</div>
+                <div class="ss-text">截取 AI 读取 PRD 后生成设计文档的过程，重点展示架构设计、接口规范等核心章节</div>
+                <div class="ss-hint">【截图采集点 #6】document-dev 生成设计文档</div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">09 / 18</div>
+</section>
+
+<!-- ===== SLIDE 10: TEST COMMAND ===== -->
+<section class="slide" id="slide-10">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">阶段 4 / 6</div>
+            <h2 class="slide-h2">测试用例设计</h2>
+            <p class="slide-body">测试组主导。基于功能设计生成全面的测试用例。<strong>TDD 强制原则</strong>：测试先行，用例可执行。</p>
+            <div class="cmd-block">
+                <div class="cmd-label">生成测试用例</div>
+                <code class="cmd">/document-test 生成 "用户登录功能测试：正常登录、验证码错误、暴力破解防护"</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">生成测试报告</div>
+                <code class="cmd">/document-test 报告 "用户登录模块测试执行结果"</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">提交测试文档</div>
+                <code class="cmd">/document-test 提交</code>
+            </div>
+            <div class="screenshot-placeholder">
+                <div class="ss-icon">📸</div>
+                <div class="ss-text">截取生成的测试用例表格，展示测试步骤、预期结果、优先级等关键字段</div>
+                <div class="ss-hint">【截图采集点 #7】document-test 生成的测试用例</div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">10 / 18</div>
+</section>
+
+<!-- ===== SLIDE 11: OVERVIEW COMMAND ===== -->
+<section class="slide slide-dark" id="slide-11">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">阶段 5 / 6</div>
+            <h2 class="slide-h2">项目进度概览</h2>
+            <p class="slide-body">项目经理主导。自动聚合 PRD、设计、开发、测试各环节状态，生成进度报告和团队播报。</p>
+            <div class="cmd-block">
+                <div class="cmd-label">生成进度报告</div>
+                <code class="cmd">/document-overview 生成</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">生成钉钉播报（简洁版）</div>
+                <code class="cmd">/document-overview 播报 简洁</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">项目健康度评估</div>
+                <code class="cmd">/document-overview 健康度</code>
+            </div>
+            <div class="screenshot-placeholder">
+                <div class="ss-icon">📸</div>
+                <div class="ss-text">截取 AI 生成的项目概览文档或钉钉播报文本，展示整体进度百分比、各模块状态、风险提醒</div>
+                <div class="ss-hint">【截图采集点 #8】document-overview 生成的进度播报</div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">11 / 18</div>
+</section>
+
+<!-- ===== SLIDE 12: COMPOUND COMMAND ===== -->
+<section class="slide" id="slide-12">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">阶段 6 / 6</div>
+            <h2 class="slide-h2">知识沉淀总结</h2>
+            <p class="slide-body">功能完成后或月度计划结束时执行。总结成功经验、失败教训和可复用模式。</p>
+            <div class="cmd-block">
+                <div class="cmd-label">功能级经验总结</div>
+                <code class="cmd">/document-compound 生成 功能级 "用户登录功能"</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">月度级经验总结</div>
+                <code class="cmd">/document-compound 生成 月度级 "2026年5月月度计划"</code>
+            </div>
+            <div class="cmd-block">
+                <div class="cmd-label">上传到知识库</div>
+                <code class="cmd">/document-compound 上传</code>
+            </div>
+            <div class="screenshot-placeholder">
+                <div class="ss-icon">📸</div>
+                <div class="ss-text">截取 AI 生成的经验总结报告，重点展示成功经验、失败教训、量化指标对比表</div>
+                <div class="ss-hint">【截图采集点 #9】document-compound 经验总结</div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">12 / 18</div>
+</section>
+
+<!-- ===== SLIDE 13: SYNC ===== -->
+<section class="slide slide-dark" id="slide-13">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">远程同步</div>
+            <h2 class="slide-h2">两阶段同步机制</h2>
+            <p class="slide-body">本地文档工作区 (.sonli-spec-doc/) 与远程文档中心仓库之间的自动/手动同步。</p>
+            <div class="two-col" style="margin-top: var(--element-gap);">
+                <div>
+                    <div class="cmd-block">
+                        <div class="cmd-label">试运行（查看将要同步的文件）</div>
+                        <code class="cmd">./.sonli-spec-doc/scripts/sync-to-remote.sh '2026年5月月度计划' --dry-run</code>
+                    </div>
+                    <div class="cmd-block">
+                        <div class="cmd-label">正式同步</div>
+                        <code class="cmd">./.sonli-spec-doc/scripts/sync-to-remote.sh '2026年5月月度计划'</code>
+                    </div>
+                </div>
+                <div class="screenshot-placeholder">
+                    <div class="ss-icon">📸</div>
+                    <div class="ss-text">在终端执行 sync-to-remote.sh 脚本，截取完整的同步过程输出，包括 clone、rsync、commit、push 各阶段</div>
+                    <div class="ss-hint">【截图采集点 #10】sync-to-remote.sh 同步过程</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">13 / 18</div>
+</section>
+
+<!-- ===== SLIDE 14: COMPLETE WORKFLOW ===== -->
+<section class="slide" id="slide-14">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">完整流程</div>
+            <h2 class="slide-h2">以"用户登录功能"为例</h2>
+            <div style="display: flex; flex-direction: column; gap: var(--element-gap); margin-top: var(--element-gap);">
+                <div style="display: flex; align-items: center; gap: var(--element-gap);">
+                    <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--small-size); font-weight: 700; flex-shrink: 0;">1</div>
+                    <code class="cmd" style="flex: 1; margin: 0;">/document-init '2026年5月月度计划'</code>
+                    <span style="font-size: var(--small-size); color: var(--muted); white-space: nowrap;">基础设施</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--element-gap);">
+                    <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--small-size); font-weight: 700; flex-shrink: 0;">2</div>
+                    <code class="cmd" style="flex: 1; margin: 0;">/document-pm 生成 "用户登录功能需求" → 提交</code>
+                    <span style="font-size: var(--small-size); color: var(--muted); white-space: nowrap;">产品经理</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--element-gap);">
+                    <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--small-size); font-weight: 700; flex-shrink: 0;">3</div>
+                    <code class="cmd" style="flex: 1; margin: 0;">/document-dev 生成 "用户登录功能设计" → 计划 → 任务 → 提交</code>
+                    <span style="font-size: var(--small-size); color: var(--muted); white-space: nowrap;">开发组</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--element-gap);">
+                    <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--small-size); font-weight: 700; flex-shrink: 0;">4</div>
+                    <code class="cmd" style="flex: 1; margin: 0;">/document-test 生成 "用户登录测试" → 提交</code>
+                    <span style="font-size: var(--small-size); color: var(--muted); white-space: nowrap;">测试组</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--element-gap);">
+                    <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--small-size); font-weight: 700; flex-shrink: 0;">5</div>
+                    <code class="cmd" style="flex: 1; margin: 0;">开发实施（按 TDD 原则：失败→实现→通过→重构）</code>
+                    <span style="font-size: var(--small-size); color: var(--muted); white-space: nowrap;">开发组</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--element-gap);">
+                    <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--small-size); font-weight: 700; flex-shrink: 0;">6</div>
+                    <code class="cmd" style="flex: 1; margin: 0;">/document-overview 生成 → 播报 简洁</code>
+                    <span style="font-size: var(--small-size); color: var(--muted); white-space: nowrap;">项目经理</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--element-gap);">
+                    <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--small-size); font-weight: 700; flex-shrink: 0;">7</div>
+                    <code class="cmd" style="flex: 1; margin: 0;">/document-compound 生成 功能级 "用户登录" → 上传</code>
+                    <span style="font-size: var(--small-size); color: var(--muted); white-space: nowrap;">全员</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">14 / 18</div>
+</section>
+
+<!-- ===== SLIDE 15: TROUBLESHOOTING ===== -->
+<section class="slide" id="slide-15">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">故障排查</div>
+            <h2 class="slide-h2">常见问题速查</h2>
+            <table class="data-table">
+                <thead>
+                    <tr><th>问题</th><th>排查命令</th><th>解决方案</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>初始化失败</td><td><code>git rev-parse --git-dir</code></td><td>确认当前目录是 Git 仓库</td></tr>
+                    <tr><td>config.yaml 缺失</td><td><code>ls .sonli-spec-doc/</code></td><td>执行 /document-init</td></tr>
+                    <tr><td>active_plan 未设置</td><td><code>grep active_plan .sonli-spec-doc/config.yaml</code></td><td>执行 /document-init plan</td></tr>
+                    <tr><td>技能命令未找到</td><td>检查 settings.json</td><td>启用 superpowers 插件</td></tr>
+                    <tr><td>目录缺失</td><td><code>ls docs/monthly/&lt;计划&gt;/</code></td><td>重新执行 /document-init</td></tr>
+                    <tr><td>远程同步失败</td><td><code>glab auth status</code></td><td>检查 GitLab 认证和权限</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="slide-number">15 / 18</div>
+</section>
+
+<!-- ===== SLIDE 16: SCREENSHOT GUIDE ===== -->
+<section class="slide slide-dark" id="slide-16">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">附录</div>
+            <h2 class="slide-h2">截图采集指南</h2>
+            <p class="slide-body">按以下清单在本地环境中执行操作并截图，然后替换幻灯片中的占位区域。</p>
+            <table class="data-table" style="margin-top: var(--element-gap);">
+                <thead>
+                    <tr><th>#</th><th>截图点</th><th>操作命令</th><th>截图内容</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>目录结构</td><td><code>tree docs/</code></td><td>初始化后的完整目录树</td></tr>
+                    <tr><td>2</td><td>init 过程</td><td><code>/document-init</code></td><td>AI 执行初始化的对话界面</td></tr>
+                    <tr><td>3</td><td>config & git</td><td><code>cat config.yaml</code></td><td>配置文件 + git log</td></tr>
+                    <tr><td>4</td><td>PRD 生成</td><td><code>/document-pm 生成</code></td><td>AI 生成 PRD 的过程</td></tr>
+                    <tr><td>5</td><td>PRD 文档</td><td>打开 .md 文件</td><td>PRD 头部和核心章节</td></tr>
+                    <tr><td>6</td><td>设计文档</td><td><code>/document-dev 生成</code></td><td>架构设计、接口规范</td></tr>
+                    <tr><td>7</td><td>测试用例</td><td><code>/document-test 生成</code></td><td>测试步骤表格</td></tr>
+                    <tr><td>8</td><td>进度播报</td><td><code>/document-overview 播报</code></td><td>钉钉播报文本</td></tr>
+                    <tr><td>9</td><td>经验总结</td><td><code>/document-compound 生成</code></td><td>经验报告核心内容</td></tr>
+                    <tr><td>10</td><td>远程同步</td><td><code>sync-to-remote.sh</code></td><td>终端同步完整输出</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="slide-number">16 / 18</div>
+</section>
+
+<!-- ===== SLIDE 17: KEY PRINCIPLES ===== -->
+<section class="slide" id="slide-17">
+    <div class="slide-content">
+        <div class="reveal">
+            <div class="slide-badge">关键原则</div>
+            <h2 class="slide-h2">理性化防护</h2>
+            <p class="slide-body">以下常见借口会导致技术债，必须严格防护：</p>
+            <div class="feature-grid" style="margin-top: var(--content-gap);">
+                <div class="feature-card" style="border-left: 3px solid var(--accent);">
+                    <h4>❌ "手动建文件夹就行"</h4>
+                    <p>✅ 必须初始化：只有初始化才能保证目录标准化和 git commit 闭环</p>
+                </div>
+                <div class="feature-card" style="border-left: 3px solid var(--accent);">
+                    <h4>❌ "先开发后补文档"</h4>
+                    <p>✅ 强制前置：没有设计文档不能开始开发</p>
+                </div>
+                <div class="feature-card" style="border-left: 3px solid var(--accent);">
+                    <h4>❌ "测试后面补"</h4>
+                    <p>✅ 强制前置：测试必须先行，不能后补</p>
+                </div>
+                <div class="feature-card" style="border-left: 3px solid var(--accent);">
+                    <h4>❌ "进度差不多就行"</h4>
+                    <p>✅ 强制精确：进度必须精确到百分比</p>
+                </div>
+                <div class="feature-card" style="border-left: 3px solid var(--accent);">
+                    <h4>❌ "项目结束不用总结"</h4>
+                    <p>✅ 强制总结：不总结就是知识浪费</p>
+                </div>
+                <div class="feature-card" style="border-left: 3px solid var(--accent);">
+                    <h4>❌ "需求不明确先写个大概"</h4>
+                    <p>✅ 强制澄清：使用 /brainstorming 或基础澄清模板</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="slide-number">17 / 18</div>
+</section>
+
+<!-- ===== SLIDE 18: END ===== -->
+<section class="slide slide-dark" id="slide-18">
+    <div class="slide-content" style="align-items: center; text-align: center;">
+        <div class="reveal">
+            <div style="font-size: var(--small-size); color: var(--accent); letter-spacing: 0.1em; margin-bottom: var(--element-gap);">END</div>
+            <h1 class="slide-title" style="max-width: 800px;">文档驱动<br>协同闭环</h1>
+            <div class="accent-bar" style="margin: var(--content-gap) auto;"></div>
+            <p class="slide-subtitle" style="max-width: 600px; margin: 0 auto;">没有完整性的文档就是技术债的根源。<br>今天不闭环，明天就难还债。</p>
+            <p style="margin-top: var(--content-gap); font-size: var(--small-size); color: #64748b;">松立研发文档协同体系 v3.0 | 2026</p>
+        </div>
+    </div>
+    <div class="slide-number">18 / 18</div>
+</section>
+
+<!-- Navigation -->
+<nav class="nav-dots" aria-label="幻灯片导航">
+    <button class="nav-dot active" data-slide="1" aria-label="第 1 页"></button>
+    <button class="nav-dot" data-slide="2" aria-label="第 2 页"></button>
+    <button class="nav-dot" data-slide="3" aria-label="第 3 页"></button>
+    <button class="nav-dot" data-slide="4" aria-label="第 4 页"></button>
+    <button class="nav-dot" data-slide="5" aria-label="第 5 页"></button>
+    <button class="nav-dot" data-slide="6" aria-label="第 6 页"></button>
+    <button class="nav-dot" data-slide="7" aria-label="第 7 页"></button>
+    <button class="nav-dot" data-slide="8" aria-label="第 8 页"></button>
+    <button class="nav-dot" data-slide="9" aria-label="第 9 页"></button>
+    <button class="nav-dot" data-slide="10" aria-label="第 10 页"></button>
+    <button class="nav-dot" data-slide="11" aria-label="第 11 页"></button>
+    <button class="nav-dot" data-slide="12" aria-label="第 12 页"></button>
+    <button class="nav-dot" data-slide="13" aria-label="第 13 页"></button>
+    <button class="nav-dot" data-slide="14" aria-label="第 14 页"></button>
+    <button class="nav-dot" data-slide="15" aria-label="第 15 页"></button>
+    <button class="nav-dot" data-slide="16" aria-label="第 16 页"></button>
+    <button class="nav-dot" data-slide="17" aria-label="第 17 页"></button>
+    <button class="nav-dot" data-slide="18" aria-label="第 18 页"></button>
+</nav>
+<div class="keyboard-hint">↑ ↓ 或滚轮切换</div>
+
+<script>
+(() => {
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.nav-dot');
+    let current = 0;
+
+    function goTo(index) {
+        if (index < 0 || index >= slides.length) return;
+        current = index;
+        slides[index].scrollIntoView({ behavior: 'smooth' });
+        dots.forEach((d, i) => d.classList.toggle('active', i === index));
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+            e.preventDefault(); goTo(current + 1);
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+            e.preventDefault(); goTo(current - 1);
+        } else if (e.key === 'Home') {
+            e.preventDefault(); goTo(0);
+        } else if (e.key === 'End') {
+            e.preventDefault(); goTo(slides.length - 1);
+        }
+    });
+
+    let wheelTimeout;
+    document.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        clearTimeout(wheelTimeout);
+        wheelTimeout = setTimeout(() => {
+            goTo(current + (e.deltaY > 0 ? 1 : -1));
+        }, 50);
+    }, { passive: false });
+
+    let touchStartY = 0;
+    document.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; });
+    document.addEventListener('touchend', (e) => {
+        const deltaY = touchStartY - e.changedTouches[0].clientY;
+        if (Math.abs(deltaY) > 50) goTo(current + (deltaY > 0 ? 1 : -1));
+    });
+
+    dots.forEach((dot, i) => {
+        dot.addEventListener('click', () => goTo(i));
+    });
+
+    // Intersection Observer for reveal animations
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+            }
+        });
+    }, { threshold: 0.3 });
+
+    slides.forEach(slide => observer.observe(slide));
+
+    // Initialize first slide
+    slides[0].querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+})();
+</script>
+</body>
+</html>

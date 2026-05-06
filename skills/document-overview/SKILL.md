@@ -23,7 +23,7 @@ description: Use when generating project progress reports, tracking development 
 - [ ] `.sonli-spec-doc/config.yaml` 存在
 - [ ] `storage.mode == git_repo`
 - [ ] `directories.active_plan` 已设置（非空）
-- [ ] `.sonli-spec-doc/<active_plan>/` 目录存在（用于写入 `overview.md`）
+- [ ] `docs/monthly/<active_plan>/` 目录存在（用于写入 `overview.md`）
 
 ### 检查脚本（AI 执行此逻辑）
 
@@ -37,7 +37,7 @@ CONFIG=".sonli-spec-doc/config.yaml"
 ACTIVE_PLAN=$(grep -E '^[[:space:]]*active_plan:' "$CONFIG" | head -1 | cut -d: -f2- | cut -d'#' -f1 | tr -d '"' | tr -d "'" | xargs)
 [ -n "$ACTIVE_PLAN" ] || { echo "❌ active_plan 未设置，请执行 /document-init plan '<月度计划名>'"; exit 1; }
 
-[ -d ".sonli-spec-doc/$ACTIVE_PLAN" ] || { echo "❌ .sonli-spec-doc/$ACTIVE_PLAN/ 目录缺失，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+[ -d "docs/monthly/$ACTIVE_PLAN" ] || { echo "❌ docs/monthly/$ACTIVE_PLAN/ 目录缺失，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
 
 echo "✅ Overview 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 ```
@@ -219,17 +219,18 @@ digraph overview_collection {
 
 **理性化的本质是管理失控。今天不透明，明天就失控。**
 
-## 两阶段同步集成
+## Git 提交集成
 
-**底层逻辑**：概览报告存入本地工作区，通过 sync-to-remote.sh 同步到远程文档中心仓库。
+**底层逻辑**：概览报告存入仓库，利用 Git 历史追踪每次更新。
 
 ```bash
-# 生成项目概览后同步到远程文档中心仓库
-ACTIVE_PLAN=$(grep 'active_plan:' .sonli-spec-doc/config.yaml | head -1 | cut -d: -f2- | tr -d '"' | tr -d "'" | xargs)
-OVERVIEW_PATH=".sonli-spec-doc/$ACTIVE_PLAN"
+# 生成项目概览后提交到仓库
+OVERVIEW_PATH="docs/monthly/$(get_active_plan)"
 
-# 写入 overview.md 后同步
-./.sonli-spec-doc/scripts/sync-to-remote.sh "$ACTIVE_PLAN"
+# 提交概览报告
+git add "$OVERVIEW_PATH/overview.md"
+git commit -m "docs(overview): update project overview - $(date +%Y-%m-%d)"
+git push
 ```
 
 ## 性能指标
