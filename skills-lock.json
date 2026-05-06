@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "using-spec": {
+      "source": "git@172.16.100.5:root/spec-kit.git",
+      "sourceType": "git",
+      "skillPath": "skills/using-spec/SKILL.md",
+      "computedHash": "36669d14a563f8d1929af2be360e9bd86da138f89ff55d08725d98a7c66e4147"
+    }
+  }
+}
