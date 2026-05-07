@@ -23,7 +23,7 @@ description: Use when designing technical implementation details from PRD requir
 - [ ] `.sonli-spec-doc/config.yaml` 存在
 - [ ] `storage.mode == git_repo`
 - [ ] `directories.active_plan` 已设置（非空）
-- [ ] `docs/monthly/<active_plan>/dev/{plans,tasks,review-report,test-report}/` 目录存在
+- [ ] `.sonli-spec-doc/<active_plan>/dev/{plans,tasks,review-report,test-report}/` 目录存在
 
 ### 检查脚本（AI 执行此逻辑）
 
@@ -38,7 +38,7 @@ ACTIVE_PLAN=$(grep -E '^[[:space:]]*active_plan:' "$CONFIG" | head -1 | cut -d: 
 [ -n "$ACTIVE_PLAN" ] || { echo "❌ active_plan 未设置，请执行 /document-init plan '<月度计划名>'"; exit 1; }
 
 for sub in plans tasks review-report test-report; do
-  [ -d "docs/monthly/$ACTIVE_PLAN/dev/$sub" ] || { echo "❌ 设计目录缺失：docs/monthly/$ACTIVE_PLAN/dev/$sub，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+  [ -d ".sonli-spec-doc/$ACTIVE_PLAN/dev/$sub" ] || { echo "❌ 设计目录缺失：.sonli-spec-doc/$ACTIVE_PLAN/dev/$sub，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
 done
 
 echo "✅ Dev 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
@@ -60,7 +60,7 @@ echo "✅ Dev 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 | 漏洞 | 防护 |
 |------|------|
 | "先写设计文档，事后再初始化" | 禁止：无 active_plan 时设计文档无法关联月度计划 |
-| "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证 git commit 闭环 |
+| "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证目录结构标准化和配置一致性 |
 | "设计放在 PRD 同目录下" | 禁止：设计必须进 `dev/plans`，便于评审和追溯 |
 
 ## 核心功能
@@ -81,14 +81,8 @@ echo "✅ Dev 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 
 ### 3. 设计文档提交
 - **格式**: `/document-dev 提交`
-- **功能**: 将设计文档提交到仓库 `docs/monthly/<活跃计划>/dev/` 对应子目录
-- **版本关联**: Git 历史自动关联设计文档与 PRD 版本
-- **命令示例**:
-  ```bash
-  git add docs/monthly/<活跃计划>/dev/
-  git commit -m "docs(dev): add design - <功能名称>"
-  git push
-  ```
+- **功能**: 将设计文档写入 `.sonli-spec-doc/<活跃计划>/dev/` 对应子目录
+- **版本关联**: 通过文件命名和目录结构关联设计文档与 PRD 版本
 
 ### 4. 设计评审集成
 - **格式**: `/document-dev 评审 [设计文档]`
@@ -249,12 +243,9 @@ digraph dev_integration {
 
 ```bash
 # 生成设计文档（AI 写入对应目录）
-DEV_PATH="docs/monthly/$(get_active_plan)/dev"
+DEV_PATH=".sonli-spec-doc/$(get_active_plan)/dev"
 
-# 提交设计文档
-git add "$DEV_PATH/"
-git commit -m "docs(dev): add design - <功能名称>"
-git push
+# AI 将设计文档内容写入 $DEV_PATH/<子目录>/<功能名>.md
 ```
 
 ## 性能指标

@@ -23,7 +23,7 @@ description: Use when generating product requirement documents (PRD) for develop
 - [ ] `.sonli-spec-doc/config.yaml` 存在
 - [ ] `storage.mode == git_repo`
 - [ ] `directories.active_plan` 已设置（非空）
-- [ ] `docs/monthly/<active_plan>/pm/prd/` 目录存在
+- [ ] `.sonli-spec-doc/<active_plan>/pm/prd/` 目录存在
 
 ### 检查脚本（AI 执行此逻辑）
 
@@ -37,7 +37,7 @@ CONFIG=".sonli-spec-doc/config.yaml"
 ACTIVE_PLAN=$(grep -E '^[[:space:]]*active_plan:' "$CONFIG" | head -1 | cut -d: -f2- | cut -d'#' -f1 | tr -d '"' | tr -d "'" | xargs)
 [ -n "$ACTIVE_PLAN" ] || { echo "❌ active_plan 未设置，请执行 /document-init plan '<月度计划名>'"; exit 1; }
 
-[ -d "docs/monthly/$ACTIVE_PLAN/pm/prd" ] || { echo "❌ PRD 目录缺失，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+[ -d ".sonli-spec-doc/$ACTIVE_PLAN/pm/prd" ] || { echo "❌ PRD 目录缺失：.sonli-spec-doc/$ACTIVE_PLAN/pm/prd，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
 
 echo "✅ PRD 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 ```
@@ -58,8 +58,8 @@ echo "✅ PRD 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 | 漏洞 | 防护 |
 |------|------|
 | "先生成 PRD，事后再初始化" | 禁止：无 active_plan 时 PRD 路径无法归位 |
-| "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证 git commit 闭环 |
-| "把 PRD 放到任意目录" | 禁止：所有 PRD 必须归属某月度计划 `docs/monthly/<plan>/pm/prd/` |
+| "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证目录结构标准化和配置一致性 |
+| "把 PRD 放到任意目录" | 禁止：所有 PRD 必须归属某月度计划 `.sonli-spec-doc/<plan>/pm/prd/` |
 
 ## 核心功能
 
@@ -72,14 +72,8 @@ echo "✅ PRD 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 
 ### 2. PRD 提交管理
 - **格式**: `/document-pm 提交`
-- **功能**: 将 PRD 提交到仓库 `docs/monthly/<活跃计划>/pm/prd/` 目录
-- **版本控制**: 通过 Git 历史追踪每次变更（自动生成 commit message）
-- **命令示例**:
-  ```bash
-  git add docs/monthly/<活跃计划>/pm/prd/<文件名>.md
-  git commit -m "docs(pm): update PRD - <功能名称> v<版本号>"
-  git push
-  ```
+- **功能**: 将 PRD 写入 `.sonli-spec-doc/<活跃计划>/pm/prd/` 目录
+- **版本控制**: 文档以 `.md` 文件形式存入本地工作区，通过 Git（若有需要）追踪变更
 
 ### 3. PRD版本管理
 - **格式**: `/document-pm 版本 [查看|回滚]`
@@ -104,7 +98,7 @@ echo "✅ PRD 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 | `/brainstorming` 不可用 | **基础澄清模板**: 使用标准澄清问题列表 | "使用基础需求澄清模板，建议后续使用/brainstorming更彻底澄清" |
 | `/office-hours` 不可用 | **PM视角检查表**: 使用PM checklist替代 | "使用PM视角检查表，建议后续使用/office-hours更深入review" |
 | `gstack` 不可用 | **技术可行性模板**: 使用通用技术评估模板 | "使用通用技术评估模板，建议后续集成gstack更精确评估" |
-| GitLab连接失败 | 无需网络：文档直接写入本地 `docs/` 目录，`git push` 时再同步 | - |
+| GitLab连接失败 | 无需网络：文档直接写入本地 `.sonli-spec-doc/<活跃计划>/` 目录 | - |
 
 ### 智能降级流程图
 
@@ -138,14 +132,9 @@ digraph pm_degradation {
 ### 推荐使用方式
 ```bash
 # 生成 PRD 文档（AI 根据需求自动写入文件）
-DOCS_PATH="docs/monthly/$(get_active_plan)/pm/prd"
+DOCS_PATH=".sonli-spec-doc/$(get_active_plan)/pm/prd"
 mkdir -p "$DOCS_PATH"
 # AI 将 PRD 内容写入 $DOCS_PATH/<功能名>.md
-
-# 提交到仓库
-git add "$DOCS_PATH/"
-git commit -m "docs(pm): add PRD - <功能名称>"
-git push
 ```
 
 

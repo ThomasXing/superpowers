@@ -23,7 +23,7 @@ description: Use when generating project progress reports, tracking development 
 - [ ] `.sonli-spec-doc/config.yaml` 存在
 - [ ] `storage.mode == git_repo`
 - [ ] `directories.active_plan` 已设置（非空）
-- [ ] `docs/monthly/<active_plan>/` 目录存在（用于写入 `overview.md`）
+- [ ] `.sonli-spec-doc/<active_plan>/` 目录存在（用于写入 `overview.md`）
 
 ### 检查脚本（AI 执行此逻辑）
 
@@ -37,7 +37,7 @@ CONFIG=".sonli-spec-doc/config.yaml"
 ACTIVE_PLAN=$(grep -E '^[[:space:]]*active_plan:' "$CONFIG" | head -1 | cut -d: -f2- | cut -d'#' -f1 | tr -d '"' | tr -d "'" | xargs)
 [ -n "$ACTIVE_PLAN" ] || { echo "❌ active_plan 未设置，请执行 /document-init plan '<月度计划名>'"; exit 1; }
 
-[ -d "docs/monthly/$ACTIVE_PLAN" ] || { echo "❌ docs/monthly/$ACTIVE_PLAN/ 目录缺失，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
+[ -d ".sonli-spec-doc/$ACTIVE_PLAN" ] || { echo "❌ .sonli-spec-doc/$ACTIVE_PLAN/ 目录缺失，请重新执行 /document-init '$ACTIVE_PLAN'"; exit 1; }
 
 echo "✅ Overview 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 ```
@@ -58,7 +58,7 @@ echo "✅ Overview 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 | 漏洞 | 防护 |
 |------|------|
 | "先生成概览，事后再初始化" | 禁止：无 active_plan 时 overview.md 无法定位到某个计划 |
-| "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证 git commit 闭环 |
+| "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证目录结构标准化和配置一致性 |
 | "跨计划聚合进度" | 禁止：概览只反映当前 active_plan，跨计划统计由专门命令处理 |
 
 ## 核心功能
@@ -219,18 +219,15 @@ digraph overview_collection {
 
 **理性化的本质是管理失控。今天不透明，明天就失控。**
 
-## Git 提交集成
+## 文档写入集成
 
-**底层逻辑**：概览报告存入仓库，利用 Git 历史追踪每次更新。
+**底层逻辑**：概览报告写入 `.sonli-spec-doc/<活跃计划>/` 工作区。
 
 ```bash
-# 生成项目概览后提交到仓库
-OVERVIEW_PATH="docs/monthly/$(get_active_plan)"
+# 生成项目概览后写入工作区
+OVERVIEW_PATH=".sonli-spec-doc/$(get_active_plan)"
 
-# 提交概览报告
-git add "$OVERVIEW_PATH/overview.md"
-git commit -m "docs(overview): update project overview - $(date +%Y-%m-%d)"
-git push
+# AI 将概览报告写入 $OVERVIEW_PATH/overview.md
 ```
 
 ## 性能指标
