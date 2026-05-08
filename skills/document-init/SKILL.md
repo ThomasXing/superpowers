@@ -9,7 +9,7 @@ description: Use when setting up the doc directory structure in the repository f
 
 **存储架构**：
 - **本地工作区**：`.sonli-spec-doc/<活跃计划名称>/`，被 `.gitignore` 排除不入主项目仓库
-- **远程文档仓库**：独立的 GitLab Spec Doc 仓库（如 `git@172.16.100.5:root/spec-doc.git`），通过 sync 脚本推送
+- **远程文档仓库**：独立的 GitLab Spec Doc 仓库（如 `git@172.16.100.5:root/spec-doc.git`），通过 sync 脚本推送/拉取
 - **团队同步**：每个成员独立执行 `/document-init '<同一计划名>'`，文档通过 Spec Doc 远程仓库共享
 
 ## 核心功能
@@ -39,7 +39,7 @@ description: Use when setting up the doc directory structure in the repository f
   │   ├── test/test-report/
   │   └── overview.md            ← 项目进度概览
   ├── 2026年5月月度计划/          ← 可切换至此
-  ├── scripts/                   ← sync-to-remote.sh 同步脚本
+  ├── scripts/                   ← sync-to-remote.sh / sync-from-remote.sh
   └── knowledge-base/
       └── compound/              ← 迭代经验沉淀
 ```
@@ -81,7 +81,9 @@ description: Use when setting up the doc directory structure in the repository f
 
 5. **目录创建**：创建 `.sonli-spec-doc/<活跃计划>/` 下的完整目录结构
 
-6. **同步脚本部署**：将 `sync-to-remote.sh` 写入 `.sonli-spec-doc/scripts/`，支持 HTTP+Token 鉴权推送至 Spec Doc 远程仓库
+6. **同步脚本部署**：将 `sync-to-remote.sh` 和 `sync-from-remote.sh` 写入 `.sonli-spec-doc/scripts/`：
+   - `sync-to-remote.sh`：推送本地文档至 Spec Doc 远程仓库（HTTP+Token 鉴权）
+   - `sync-from-remote.sh`：从 Spec Doc 远程仓库拉取最新文档到本地（GitLab API v4）
 
 7. **幂等检查**：若目录已存在则跳过目录创建，仅更新 config.yaml 中的 active_plan
 
@@ -90,7 +92,7 @@ description: Use when setting up the doc directory structure in the repository f
 **`.sonli-spec-doc/` 必须被 `.gitignore` 排除，绝不入主项目版本库**，原因：
 
 - 包含 **内网 IP / GitLab hostname**（`gitlab.hostname`、`gitlab.ssh_url`）
-- 包含 **GitLab Personal Access Token**（`gitlab.token`）— 用于 sync-to-remote.sh HTTP 鉴权
+- 包含 **GitLab Personal Access Token**（`gitlab.token`）— 用于 sync-to-remote.sh / sync-from-remote.sh 鉴权
 - 包含 **个人账号名 / commit_author**
 - 包含 **SSH key 路径**
 - 初始化时间戳、本机路径等是机器相关状态
@@ -99,13 +101,13 @@ description: Use when setting up the doc directory structure in the repository f
 
 ### GitLab Token 权限要求
 
-sync-to-remote.sh 使用 HTTP + PAT 鉴权方式，Token 需具备以下 GitLab 权限：
+sync-to-remote.sh 和 sync-from-remote.sh 共用 config.yaml 中的 Token，需具备以下 GitLab 权限：
 
 | 权限 | 用途 |
 |------|------|
-| `api` | 调用 GitLab API 验证 Token 有效性 |
-| `read_repository` | 读取 Spec Doc 远程仓库 |
-| `write_repository` | 推送文档到 Spec Doc 远程仓库 |
+| `api` | 调用 GitLab API（sync-from-remote.sh 拉取文件列表 + Token 有效性验证） |
+| `read_repository` | 读取 Spec Doc 远程仓库（sync-from-remote.sh 下载文档） |
+| `write_repository` | 推送文档到 Spec Doc 远程仓库（sync-to-remote.sh） |
 
 ```bash
 # 初始化脚本示例（AI 执行此逻辑）
@@ -182,7 +184,7 @@ mkdir -p ".sonli-spec-doc/knowledge-base/compound"
 mkdir -p ".sonli-spec-doc/scripts"
 
 # ── 6. 同步脚本部署 ──
-# sync-to-remote.sh 由 AI 根据模板写入 .sonli-spec-doc/scripts/
+# sync-to-remote.sh 和 sync-from-remote.sh 由 AI 根据模板写入 .sonli-spec-doc/scripts/
 
 echo "✅ document-init 完成 — 活跃计划: ${PLAN} | Spec Doc: ${HOST} | Token: 已验证"
 ```
@@ -216,6 +218,18 @@ gitlab:
 4. 若 token 为空 → 回退 SSH 模式（git push 使用 ssh_url）
 ```
 
+### sync-from-remote.sh 拉取流程
+
+```
+1. 读取 config.yaml → active_plan + token + hostname
+2. 调用 /api/v4/projects/<id>/repository/tree 列出远程文档文件
+3. 遍历文件列表（跳过 .gitkeep）
+4. 逐个调用 /api/v4/projects/<id>/repository/files/<path>/raw 下载
+5. 写入本地 .sonli-spec-doc/<active_plan>/ 对应目录
+6. 已存在的文件跳过（幂等），仅拉取新文件
+7.  标记：强制覆盖已有文件，用于远端文档更新后的同步
+```
+
 ## 配置完整性检查表
 
 - [ ] 主项目 Git 仓库检查：`git rev-parse --git-dir` 成功
@@ -225,7 +239,7 @@ gitlab:
 - [ ] 配置文件创建：`.sonli-spec-doc/config.yaml` 已存在，含 `gitlab.token` 非空
 - [ ] **★ 月度计划配置**：`directories.active_plan` 已设置
 - [ ] 目录结构创建：`.sonli-spec-doc/<计划>/pm/prd/` 等子目录已建立
-- [ ] 同步脚本就绪：`.sonli-spec-doc/scripts/sync-to-remote.sh` 可用
+- [ ] 同步脚本就绪：`.sonli-spec-doc/scripts/sync-to-remote.sh` 和 `sync-from-remote.sh` 可用
 
 ## 与子技能的契约（重要）
 
@@ -234,11 +248,13 @@ gitlab:
 | 检查项 | 来源 | 读取者 |
 |--------|------|--------|
 | `.sonli-spec-doc/config.yaml` | 本技能创建 | 所有 document-* 子技能 |
-| `gitlab.ssh_url` / `gitlab.hostname` | 初始化时用户输入 | sync-to-remote.sh |
-| `gitlab.token` | ★ 初始化时用户输入并验证 | sync-to-remote.sh（HTTP oauth2 鉴权） |
+| `gitlab.ssh_url` / `gitlab.hostname` | 初始化时用户输入 | sync-to-remote.sh / sync-from-remote.sh |
+| `gitlab.token` | ★ 初始化时用户输入并验证 | sync-to-remote.sh（HTTP oauth2 鉴权）/ sync-from-remote.sh（GitLab API 鉴权） |
 | `directories.active_plan` | `/document-init '<名>'` 或 `/document-init plan '<名>'` 写入 | 所有子技能拼接文件路径 |
 | `.sonli-spec-doc/<active_plan>/{pm/prd,dev/*,test/*}/` | 本技能初始化时创建 | 各子技能写入对应子目录 |
 | `.sonli-spec-doc/knowledge-base/compound/` | 本技能初始化时创建 | `document-compound` 归档用 |
+
+**各子技能 pre-check 承诺**：发现本地文档为空时，自动提示执行 `sync-from-remote.sh` 从 Spec Doc 拉取最新文档。确保上游 PRD / 设计文档在本地可用。
 
 **如果未执行本技能**，任何 `/document-pm`、`/document-dev`、`/document-test`、`/document-overview`、`/document-compound` 都会立即报错并引导用户回到本技能完成初始化。
 
@@ -249,7 +265,8 @@ gitlab:
 .sonli-spec-doc/
 ├── config.yaml                    # 全局配置（gitlab 远程仓库 + token + active_plan）
 ├── scripts/
-│   └── sync-to-remote.sh          # Spec Doc 远程同步脚本（HTTP+Token 鉴权）
+│   ├── sync-to-remote.sh          # Spec Doc 远程推送脚本（HTTP+Token 鉴权）
+│   └── sync-from-remote.sh        # Spec Doc 远程拉取脚本（GitLab API v4）
 ├── 2026年4月月度计划/              # ★ 活跃月度计划
 │   ├── pm/
 │   │   └── prd/                   # PRD 文档
@@ -272,13 +289,14 @@ gitlab:
 |------|----------|
 | "不用初始化，手动建文件夹就行" | **必须初始化**：只有初始化才能保证目录结构标准化，config.yaml 被所有子技能依赖 |
 | "Spec Doc 仓库后面再配，先写文档" | **必须前置**：Spec Doc 仓库地址是文档共享的基础，未配置则文档无法同步给团队 |
-| "没有 Token 也可以，走 SSH 就行" | **必须配置 Token**：sync-to-remote.sh 优先 HTTP+Token 鉴权（非交互环境 SSH host key 会阻塞），Token 无效时禁止继续 |
+| "没有 Token 也可以，走 SSH 就行" | **必须配置 Token**：sync-to-remote.sh 优先 HTTP+Token 鉴权（非交互环境 SSH host key 会阻塞），sync-from-remote.sh 必须 Token 调用 API；Token 无效时禁止继续 |
 | "切换计划太麻烦，先混着放" | **一键切换**：通过 `plan` 子命令切换 active_plan，文档路径自动变更，不能混放 |
 | "把文档放到 docs/ 下 git 管理" | **禁止**：`.sonli-spec-doc/` 为主工作区（.gitignore 排除），文档通过 Spec Doc 远程仓库共享 |
 
 ---
 **子智能体标识**：document-init-agent
-**版本**：3.2.0
+**版本**：3.3.0
 **存储模式**：git_repo + spec_doc_remote
 **鉴权方式**：HTTP + GitLab PAT（SSH 为备用）
+**双向同步**：sync-to-remote（推送）+ sync-from-remote（拉取）
 **状态**：就绪

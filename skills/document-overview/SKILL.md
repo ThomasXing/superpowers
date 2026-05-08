@@ -24,6 +24,7 @@ description: Use when generating project progress reports, tracking development 
 - [ ] `storage.mode == git_repo`
 - [ ] `directories.active_plan` 已设置（非空）
 - [ ] `.sonli-spec-doc/<active_plan>/` 目录存在（用于写入 `overview.md`）
+- [ ] `.sonli-spec-doc/scripts/sync-from-remote.sh` 可用 → **pre-check 自动执行**，拉取远端最新文档（已有跳过，新文件补齐；`--force` 强制覆盖）
 
 ### 检查脚本（AI 执行此逻辑）
 
@@ -51,6 +52,7 @@ echo "✅ Overview 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
   1. /document-init '2026年4月月度计划'   ← 首次初始化
   2. /document-init plan '2026年4月月度计划' ← 仅切换活跃计划
 完成后请重新执行本命令。
+  3. ./scripts/sync-from-remote.sh          ← 自动拉取远端最新文档（已有跳过，--force 强制覆盖）
 ```
 
 ### 理性化防护
@@ -60,6 +62,7 @@ echo "✅ Overview 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 | "先生成概览，事后再初始化" | 禁止：无 active_plan 时 overview.md 无法定位到某个计划 |
 | "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证目录结构标准化和配置一致性 |
 | "跨计划聚合进度" | 禁止：概览只反映当前 active_plan，跨计划统计由专门命令处理 |
+| "远端有更新的 overview 但我直接覆盖写" | **禁止**：必须先 `sync-from-remote.sh` 拉取最新 overview，在此基础上增量更新 |
 
 ## 核心功能
 

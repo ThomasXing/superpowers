@@ -24,6 +24,7 @@ description: Use when designing technical implementation details from PRD requir
 - [ ] `storage.mode == git_repo`
 - [ ] `directories.active_plan` 已设置（非空）
 - [ ] `.sonli-spec-doc/<active_plan>/dev/{plans,tasks,review-report,test-report}/` 目录存在
+- [ ] `.sonli-spec-doc/scripts/sync-from-remote.sh` 可用 → **pre-check 自动执行**，拉取远端最新 PRD 和设计文档（已有跳过，新文件补齐；`--force` 强制覆盖）
 
 ### 检查脚本（AI 执行此逻辑）
 
@@ -53,6 +54,7 @@ echo "✅ Dev 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
   1. /document-init '2026年4月月度计划'   ← 首次初始化
   2. /document-init plan '2026年4月月度计划' ← 仅切换活跃计划
 完成后请重新执行本命令。
+  3. ./scripts/sync-from-remote.sh          ← 自动拉取远端最新文档（已有跳过，--force 强制覆盖）
 ```
 
 ### 理性化防护
@@ -62,6 +64,7 @@ echo "✅ Dev 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 | "先写设计文档，事后再初始化" | 禁止：无 active_plan 时设计文档无法关联月度计划 |
 | "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证目录结构标准化和配置一致性 |
 | "设计放在 PRD 同目录下" | 禁止：设计必须进 `dev/plans`，便于评审和追溯 |
+| "远端有设计文档但本地没有，直接写新的" | **禁止**：设计前必须先执行 `sync-from-remote.sh` 拉取最新 PRD 和设计文档，确保上下游一致 |
 
 ## 核心功能
 
@@ -80,15 +83,296 @@ echo "✅ Dev 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 - **代码审查报告(review report)**: 生成代码审查标准和报告模板
 
 ### 3. 设计文档提交
-- **格式**: `/document-dev 提交`
-- **功能**: 将设计文档写入 `.sonli-spec-doc/<活跃计划>/dev/` 对应子目录
+- **格式**: `/document-dev 提交 [描述] [--paths <src>]`
+- **功能**: 将设计文档写入 `.sonli-spec-doc/<活跃计划>/dev/` 对应子目录，并推送到远端
 - **版本关联**: 通过文件命名和目录结构关联设计文档与 PRD 版本
+- **意图补全**: AI 根据用户描述自动推断 `--dest` 远程目录（见下方映射表）
+
+#### 路径意图映射表（document-dev 自动补全规则）
+
+当用户执行 `/document-dev 提交 <描述> --paths <source>` 时，AI **必须**根据描述中的关键词自动推断远程目标目录，构造 `source:dest` 语法：
+
+| 用户意图关键词 | 推断的 --dest 模式 | 示例 |
+|---------------|---------------------|------|
+| 接口文档 / api / API | `dev/api/<需求名称>` | `提交法定节假日接口文档 --paths api-output` → `--paths "api-output:dev/api/法定节假日禁止用券"` |
+| 测试报告 / 测试验收 / test-report | `dev/test-report/<需求名称>` | `提交法定节假日测试报告 --paths dogfood-output` → `--paths "dogfood-output:dev/test-report/法定节假日禁止用券"` |
+| 设计文档 / 功能设计 / plans | `dev/plans/<需求名称>` | `提交用户登录设计文档 --paths design-out` → `--paths "design-out:dev/plans/用户登录"` |
+| 评审报告 / review | `dev/review-report/<需求名称>` | `提交用户登录评审报告 --paths review-out` → `--paths "review-out:dev/review-report/用户登录"` |
+| 任务 / tasks | `dev/tasks/<需求名称>` | `提交用户登录任务 --paths task-out` → `--paths "task-out:dev/tasks/用户登录"` |
+
+**补全逻辑**：
+1. 提取用户描述中的**意图关键词**（接口文档/测试报告/设计文档/评审报告/任务）→ 确定目录类别
+2. 提取用户描述中的**需求名称**（如"法定节假日"→"法定节假日禁止用券"，需匹配实际 PRD 文件名中的简称）
+3. 构造 `--paths "<source>:<目录类别>/<需求名称>"` 传给 `sync-to-remote.sh`
+4. 需求名称提取规则：从用户描述中提取核心功能词，匹配 `.sonli-spec-doc/<active_plan>/pm/prd/` 下已有的 PRD 文件名，取匹配的简称；无匹配 PRD 时使用描述中的关键词
+5. 无法匹配意图关键词时，使用 `source` 作为 `dest`（兼容旧行为）
+6. 用户显式指定 `source:dest` 时，以用户指定为准
 
 ### 4. 设计评审集成
 - **格式**: `/document-dev 评审 [设计文档]`
 - **代码审查集成**: 与现有代码审查技能集成
 - **技术评审**: 组织技术评审会议和记录评审意见
 - **设计优化**: 根据评审意见优化设计文档
+
+## 执行工作流（AI 必须遵循）
+
+**当用户调用 `/document-dev 创建设计文档`、`/document-dev 生成 "功能描述"` 或任何涉及设计文档生成的子命令时，AI 必须严格按以下步骤执行。不可跳步、不可省略自检。**
+
+### 步骤 1：前置检查 + 远端同步
+
+执行「⛳ 初始化配置前置检查」中的必检项和检查脚本，通过后执行 `sync-from-remote.sh` 拉取远端最新 PRD 和设计文档。
+
+未通过时输出统一响应，中止执行。
+
+### 步骤 2：PRD 识别与读取
+
+1. **扫描 PRD 目录**：列出 `.sonli-spec-doc/<active_plan>/pm/prd/` 下所有 `.md` 文件
+2. **确定目标 PRD**：
+   - 若用户指定了功能描述（如 `/document-dev 生成 "用户登录"`），匹配文件名包含该关键词的 PRD
+   - 若用户未指定（如 `/document-dev 创建设计文档`），扫描哪些 PRD 缺少对应设计文档（`dev/plans/` 下无同名设计文档），列出供用户选择
+   - 若所有 PRD 均已有设计文档，提示用户指定要重新设计或新增的 PRD
+3. **读取目标 PRD 全文**，提取以下要素到结构化摘要：
+
+```
+PRD 要素提取模板：
+├── 需求背景：业务背景 + 问题描述 + 影响范围
+├── 核心目标：成功标准 + 验收条件
+├── 功能点列表：每个功能点的用户故事 + 验收标准
+├── 非功能需求：性能 + 安全 + 兼容性
+├── 交付计划：里程碑 + 资源 + 风险
+└── 术语定义：业务术语 + 技术术语
+```
+
+### 步骤 3：需求拆解（PRD → 技术设计单元）
+
+将 PRD 中每个功能点拆解为可独立设计的技术单元。拆解颗粒度原则：
+- 每个技术单元对应 1 个组件/模块/接口的修改
+- 每个技术单元可在 1 个设计小节中完整描述
+- 拆解结果以表格形式呈现，等待用户确认
+
+```
+需求拆解输出格式：
+| # | PRD 功能点 | 技术设计单元 | 涉及文件/模块 | 优先级 |
+|---|-----------|-------------|-------------|--------|
+| 1 | 手机号验证码登录 | 验证码发送组件 | auth/SmsCode.vue | P0 |
+| 2 | 手机号验证码登录 | 登录接口调用 | auth/loginApi.ts | P0 |
+| ... | ... | ... | ... | ... |
+```
+
+**等待用户确认拆解结果**，确认后进入步骤 4。用户可调整拆解颗粒度或增删设计单元。
+
+### 步骤 4：架构设计
+
+基于确认的拆解结果，设计系统架构：
+
+1. **模块划分**：明确各技术单元的模块归属和层次关系
+2. **数据流图**：描述数据在各模块间的流转路径
+3. **技术选型**：列出技术栈选择及理由（复用现有技术栈优先）
+4. **模块间接口约定**：定义模块间的数据契约（输入/输出格式）
+
+输出格式参照模板「2. 系统架构」章节。
+
+### 步骤 5：详细设计
+
+对每个技术设计单元，逐一展开详细设计：
+
+1. **响应式数据设计**：定义组件所需的 ref/state 结构
+2. **核心逻辑设计**：关键函数的伪代码或逻辑描述
+3. **模板结构设计**：组件 DOM 结构树（缩进表示层级）
+4. **数据提交设计**：表单数据如何组装为接口入参
+5. **重置/清理逻辑**：组件卸载或取消时的状态清理
+
+输出格式参照模板「3. 详细设计」章节。
+
+### 步骤 6：接口规范
+
+1. **入参定义**：字段名、类型、必填、格式、示例
+2. **返参定义**：字段名、类型、说明、示例
+3. **前端处理规则**：数据如何映射到界面展示
+4. **错误处理**：异常场景的前端降级策略
+
+输出格式参照模板「4. 接口规范」章节。
+
+### 步骤 7：补充设计（按需）
+
+根据项目实际情况，补充以下章节（不能以"后续补充"为借口跳过）：
+
+- **部署方案**（第5章）：环境要求、构建验证命令
+- **性能设计**（第6章）：关键路径性能预估、优化策略
+- **安全设计**（第7章）：输入校验、数据防护、审计日志
+- **测试设计**（第8章）：功能测试要点、边界条件、异常场景
+- **风险评估**（第9章）：技术风险、进度风险、应对策略
+
+### 步骤 8：完整性自检
+
+设计文档完成后，**强制执行以下自检**，逐项确认：
+
+```
+设计文档完整性自检表：
+- [ ] 设计目标与 PRD 需求完全对齐（每个 PRD 功能点都有对应设计）
+- [ ] 架构合理性：模块划分清晰，无循环依赖
+- [ ] 涉及文件/模块已明确列出
+- [ ] 接口规范完整：入参+返参+前端处理规则
+- [ ] 详细设计到函数级：响应式数据+核心逻辑+模板结构
+- [ ] 边界条件已覆盖（空值、异常、极端场景）
+- [ ] 非功能需求有对应设计方案（性能+安全）
+- [ ] 风险已识别且有应对策略
+```
+
+**任何一项不通过，必须补充设计，不能标记完成。**
+
+### 步骤 9：写入文件 + 同步
+
+1. **文件命名**：`<功能简称>-功能设计.md`（如 `用户登录-功能设计.md`）
+2. **存储路径**：`.sonli-spec-doc/<active_plan>/dev/plans/<功能简称>-功能设计.md`
+3. **写入文件**：将完整设计文档写入上述路径
+3. **可选远端同步**：提示用户是否执行 `sync-to-remote.sh` 推送到 Spec Doc 远程仓库
+   - 支持路径意图映射：`--paths "dogfood-output:dev/test-report"` 将本地 dogfood-output 上传到远程 dev/test-report
+   - 也支持 `--paths dogfood-output --dest dev/test-report` 等效写法
+   - 不指定 dest 时，默认使用 source 作为远程目录名
+
+### 步骤 10：输出确认
+
+```
+✅ 设计文档已生成
+   文件：.sonli-spec-doc/<active_plan>/dev/plans/<功能简称>-功能设计.md
+   对齐PRD：<PRD文件名>
+   技术单元数：<N>个
+   完整性自检：<通过项>/8
+   
+   下一步建议：
+   1. /document-dev 评审              ← 设计评审
+   2. /document-test 生成 "<功能描述>" ← 生成测试用例
+   3. ./sync-to-remote.sh --paths "local-dir:remote-dest"  ← 自定义路径推送到指定远程目录
+   4. ./sync-to-remote.sh --paths local-dir --dest remote-dest ← 同上，等效写法
+```
+
+---
+
+## 与 writing-plans 技能集成（实施计划创建优先使用）
+
+**当 `/document-dev 创建设计文档` 或 `/document-dev 生成 "功能描述"` 执行到步骤 3（需求拆解）并经用户确认后，必须优先使用 `superpowers:writing-plans` 技能的方法论来生成实施计划。**
+
+### 为什么要集成 writing-plans
+
+| 对比项 | 传统设计文档 | writing-plans 方法论 |
+|--------|------------|-------------------|
+| 任务粒度 | 按模块/组件描述 | bite-sized（2-5分钟/步）|
+| 代码完整度 | 伪代码/设计描述 | 完整可执行代码 |
+| 测试策略 | 测试要点列表 | TDD：写失败测试→验证失败→实现→验证通过→提交 |
+| 占位符 | 允许 "后续补充" | **禁止** 任何 TBD/TODO/"后续实现" |
+| 文件精度 | 模块级路径 | 精确到行号（`file.py:123-145`） |
+| 执行追踪 | 无 | checkbox（`- [ ]`）语法 |
+
+### 集成执行流程
+
+步骤 1~3（前置检查 + PRD 读取 + 需求拆解）→ **用户确认拆解** → 调用 `writing-plans` 生成实施计划 → 步骤 8~10（自检 + 写入 + 确认）
+
+具体地，步骤 3 用户确认拆解后：
+
+1. **调用 writing-plans 技能**：将确认的拆解结果和 PRD 全文作为输入
+2. **writing-plans 生成实施计划**，遵循以下规则：
+   - **计划头部**：必须包含 Goal、Architecture、Tech Stack 摘要
+   - **文件结构映射**：先定义所有涉及的文件及其职责，再定义任务
+   - **Task 粒度**：每个 Task 包含多个 Step，每个 Step 是一个 2-5 分钟的原子操作
+   - **TDD 步骤**：写失败测试 → 运行验证失败 → 写最小实现 → 运行验证通过 → 提交
+   - **完整代码**：每个 Step 必须包含实际代码，绝不使用占位符
+   - **精确路径**：`Create:` / `Modify: path/to/file:行号` / `Test: path/to/test`
+   - **Self-Review**：计划完成后执行自检（spec 覆盖度、占位符扫描、类型一致性）
+3. **存储路径**：实施计划写入 `.sonli-spec-doc/<active_plan>/dev/plans/<功能简称>-实施计划.md`
+4. **执行交接**：计划完成后提示用户选择执行方式：
+   - **Subagent-Driven（推荐）**：使用 `superpowers:subagent-driven-development`，每个 Task 派发独立 subagent
+   - **Inline Execution**：使用 `superpowers:executing-plans`，批量执行+检查点
+
+### 实施计划文档头部模板
+
+```markdown
+# [功能名称] 实施计划
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** [一句话描述构建目标]
+
+**Architecture:** [2-3 句架构方法]
+
+**Tech Stack:** [关键技术/库]
+
+**对齐PRD:** `.sonli-spec-doc/<active_plan>/pm/prd/<PRD文件名>.md`
+
+**对齐设计:** `.sonli-spec-doc/<active_plan>/dev/plans/<功能设计文件名>.md`
+
+---
+```
+
+### 实施计划 Task 结构模板
+
+````markdown
+### Task N: [组件名称]
+
+**Files:**
+- Create: `exact/path/to/file.ts`
+- Modify: `exact/path/to/existing.vue:123-145`
+- Test: `tests/exact/path/to/test.ts`
+
+- [ ] **Step 1: 写失败测试**
+
+```typescript
+describe('组件名', () => {
+  it('应该正确处理XX', () => {
+    // 测试代码
+  })
+})
+```
+
+- [ ] **Step 2: 运行测试验证失败**
+
+Run: `pnpm test path/to/test`
+Expected: FAIL
+
+- [ ] **Step 3: 写最小实现**
+
+```typescript
+// 完整实现代码
+```
+
+- [ ] **Step 4: 运行测试验证通过**
+
+Run: `pnpm test path/to/test`
+Expected: PASS
+
+- [ ] **Step 5: 提交**
+
+```bash
+git add path/to/files
+ git commit -m "feat: 描述"
+```
+````
+
+### 禁止的占位符模式
+
+实施计划中绝不允许出现以下内容：
+- "TBD"、"TODO"、"后续实现"、"fill in details"
+- "添加适当的错误处理" / "添加验证" / "处理边界情况"（必须给出实际代码）
+- "为上述代码写测试"（必须给出实际测试代码）
+- "类似 Task N"（必须重复代码，因为 subagent 可能乱序执行）
+- 只有描述没有代码的步骤
+
+---
+
+## 命令路由表
+
+| 用户输入 | 匹配规则 | 执行动作 |
+|---------|---------|--------|
+| `/document-dev 创建设计文档` | 未指定功能 | 扫描缺少设计的 PRD → 用户选择 → 步骤1~3 → **writing-plans 生成实施计划** → 步骤8~10 |
+| `/document-dev 生成 "功能描述"` | 指定功能关键词 | 匹配 PRD → 步骤1~3 → **writing-plans 生成实施计划** → 步骤8~10 |
+| `/document-dev 提交` | 提交已有设计 | 执行 sync-to-remote.sh 推送 |
+| `/document-dev 提交 <描述> --paths <src>` | 提交自定义路径 | 根据意图映射表自动补全 dest，构造 `src:dest` 推送 |
+| `/document-dev 提交 <描述> --paths <src>:<dest>` | 显式指定远程目录 | 用户指定为准，不自动补全 |
+| `/document-dev 评审 [文档]` | 设计评审 | 读取设计文档 + PRD → 一致性审查 |
+| `/document-dev 计划` | 需求拆解 | 仅执行步骤1~3 + **writing-plans 生成实施计划** |
+| `/document-dev 任务` | 任务分配 | 读取设计文档 → 生成任务分配文档到 `dev/tasks/` |
+
+---
 
 ## 工程流程集成
 

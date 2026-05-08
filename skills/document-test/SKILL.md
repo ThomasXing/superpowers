@@ -24,6 +24,7 @@ description: Use when creating test cases from design specifications, managing t
 - [ ] `storage.mode == git_repo`
 - [ ] `directories.active_plan` 已设置（非空）
 - [ ] `.sonli-spec-doc/<active_plan>/test/{testcases,test-report}/` 目录存在
+- [ ] `.sonli-spec-doc/scripts/sync-from-remote.sh` 可用 → **pre-check 自动执行**，拉取远端最新 PRD 和设计文档（已有跳过，新文件补齐；`--force` 强制覆盖）
 
 ### 检查脚本（AI 执行此逻辑）
 
@@ -53,6 +54,7 @@ echo "✅ Test 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
   1. /document-init '2026年4月月度计划'   ← 首次初始化
   2. /document-init plan '2026年4月月度计划' ← 仅切换活跃计划
 完成后请重新执行本命令。
+  3. ./scripts/sync-from-remote.sh          ← 自动拉取远端最新文档（已有跳过，--force 强制覆盖）
 ```
 
 ### 理性化防护
@@ -62,6 +64,7 @@ echo "✅ Test 初始化配置检查通过（活跃计划：$ACTIVE_PLAN）"
 | "先写测试用例，事后再初始化" | 禁止：无 active_plan 时测试用例无法归档月度计划 |
 | "手动创建 config.yaml 绕过检查" | 禁止：必须通过 `/document-init` 保证目录结构标准化和配置一致性 |
 | "测试报告丢到项目根目录" | 禁止：必须进 `test/test-report`，便于回溯验收链 |
+| "不看 PRD 和设计，直接写测试用例" | **禁止**：测试前必须先执行 `sync-from-remote.sh` 拉取上游 PRD 和设计文档，无法覆盖未读需求 |
 
 ## 与test-driven-development深度集成
 
@@ -115,9 +118,27 @@ digraph tdd_integration {
 - **数据**: 测试通过率、缺陷统计、风险评估
 
 ### 4. 文档提交管理
-- **格式**: `/document-test 提交`
-- **功能**: 将测试文档写入 `.sonli-spec-doc/<活跃计划>/test/` 对应子目录
+- **格式**: `/document-test 提交 [描述] [--paths <src>]`
+- **功能**: 将测试文档写入 `.sonli-spec-doc/<活跃计划>/test/` 对应子目录，并推送到远端
+- **意图补全**: AI 根据用户描述自动推断 `--dest` 远程目录（见下方映射表）
 - **版本关联**: 通过文件命名和目录结构关联测试文档与设计文档版本
+
+#### 路径意图映射表（document-test 自动补全规则）
+
+当用户执行 `/document-test 提交 <描述> --paths <source>` 时，AI **必须**根据描述中的关键词自动推断远程目标目录，构造 `source:dest` 语法：
+
+| 用户意图关键词 | 推断的 --dest 模式 | 示例 |
+|---------------|---------------------|------|
+| 测试用例 / 用例 / testcases | `test/testcases/<需求名称>` | `提交法定节假日测试用例 --paths test-out` → `--paths "test-out:test/testcases/法定节假日禁止用券"` |
+| 测试报告 / test-report | `test/test-report/<需求名称>` | `提交法定节假日测试报告 --paths dogfood-output` → `--paths "dogfood-output:test/test-report/法定节假日禁止用券"` |
+
+**补全逻辑**：
+1. 提取用户描述中的**意图关键词**（测试用例/测试报告）→ 确定目录类别
+2. 提取用户描述中的**需求名称**（如"法定节假日"→"法定节假日禁止用券"，需匹配实际 PRD 文件名中的简称）
+3. 构造 `--paths "<source>:<目录类别>/<需求名称>"` 传给 `sync-to-remote.sh`
+4. 需求名称提取规则：从用户描述中提取核心功能词，匹配 `.sonli-spec-doc/<active_plan>/pm/prd/` 下已有的 PRD 文件名，取匹配的简称；无匹配 PRD 时使用描述中的关键词
+5. 无法匹配意图关键词时，使用 `source` 作为 `dest`（兼容旧行为）
+6. 用户显式指定 `source:dest` 时，以用户指定为准
 
 ## 使用说明
 
@@ -134,6 +155,9 @@ digraph tdd_integration {
 
 # 提交文档
 /document-test 提交
+
+# 提交自定义路径（如 dogfood-output → test/test-report）
+/document-test 提交 --paths "dogfood-output:test/test-report"
 ```
 
 ### 空格格式（兼容）

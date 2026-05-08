@@ -4,6 +4,26 @@ description: Use when starting any conversation in Qoder IDE - discovers and lin
 install_all: true
 ---
 
+## 双重职责
+
+`using-spec` 承担两个核心职责：
+
+1. **全量安装**：首次安装时，自动将 spec-kit 仓库中所有技能复制到 `.qoder/skills/`，确保项目技能可用
+2. **自动调度**：每次对话开始时，根据用户意图自动匹配并调用对应技能，无需用户手动指定
+
+### 自动调度示例
+
+| 用户说 | 自动调用 | 原因 |
+|--------|----------|------|
+| "帮我设计一个停车调度系统" | `brainstorming` → `document-pm` | 设计新功能 = 创意工作，先头脑风暴再生成PRD |
+| "写一个用户登录功能" | `brainstorming` → `writing-plans` → `subagent-driven-development` | 新功能开发 = 完整流程 |
+| "这个bug怎么修" | `investigate` → `systematic-debugging` | 调试 = 系统化根因分析 |
+| "生成测试用例" | `document-test` | 测试文档 = 领域技能 |
+| "提交代码审查" | `requesting-code-review` | 代码审查 = 领域技能 |
+| "帮我写个实施计划" | `writing-plans` | 计划编写 = 流程技能 |
+| "QA这个网站" | `qa` | 质量保障 = 领域技能 |
+| "部署到生产环境" | `ship` → `land-and-deploy` | 发布 = 流程技能链 |
+
 <SUBAGENT-STOP>
 If you were dispatched as a subagent to execute a specific task, skip this skill.
 </SUBAGENT-STOP>
@@ -99,10 +119,34 @@ When multiple skills could apply, use this order:
 2. **Implementation skills second** (frontend-design, document) - these guide execution
 3. **Domain skills third** (document-pm, document-dev, qa) - these handle specific workflows
 
-"Let's build X" → brainstorming first, then implementation skills.
-"Fix this bug" → debugging first, then domain-specific skills.
-"Write a PRD" → document-pm skill.
-"Create test cases" → document-test skill.
+### 技能链路（Skill Chains）
+
+常见的多技能协作链路：
+
+| 场景 | 技能链路 | 说明 |
+|------|----------|------|
+| 新功能设计 | `brainstorming` → `document-pm` | 先需求探索，再生成PRD |
+| 新功能开发 | `brainstorming` → `writing-plans` → `subagent-driven-development` | 需求→计划→执行 |
+| Bug修复 | `investigate` → `systematic-debugging` | 根因分析→系统化修复 |
+| 设计文档 | `document-dev` | 内置 writing-plans 集成 |
+| 测试报告 | `document-test` | 测试用例+报告管理 |
+| 代码审查 | `requesting-code-review` | 派发审查子代理 |
+| 发布上线 | `ship` → `land-and-deploy` | 创建PR→合并部署 |
+
+### 意图关键词匹配规则
+
+| 关键词模式 | 匹配技能 |
+|------------|----------|
+| 设计/创建/开发/实现/构建 新功能/系统/模块 | `brainstorming` |
+| 修复/调试/排查/为什么 报错/bug/异常 | `investigate` |
+| 写/生成 PRD/需求文档 | `document-pm` |
+| 写/生成 设计文档/实施计划 | `document-dev` |
+| 写/生成 测试用例/测试报告 | `document-test` |
+| 代码审查/review | `requesting-code-review` |
+| 部署/发布/上线/ship | `ship` |
+| 经验总结/复盘 | `document-compound` |
+
+**关键规则**：`brainstorming` 是所有创意工作的前置技能。任何涉及"设计"、"创建"、"开发"的请求，都必须先调用 `brainstorming`。
 
 ## Skill Types
 
