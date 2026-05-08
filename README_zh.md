@@ -38,24 +38,37 @@ npx skills add http://172.16.100.5/root/spec-kit.git --skill document-compound -
 
 ## 整体协作流程
 
-```
-需求孵化            规格文档阶段                  研发执行阶段              质量保证阶段          收尾阶段
-──────────    ────────────────────────    ──────────────────────    ─────────────────    ─────────────
-/brainstorm → /document-pm 生成          → /writing-plans           → /qa                → /document-compound
-     ↓              ↓                           ↓                     ↓                     生成 & 上传
-  设计文档      PRD 提交到仓库           → /subagent-driven-development   自动化 QA 测试
-                    ↓                           ↓
-              /document-dev 生成          /requesting-code-review
-                    ↓                           ↓
-              /document-test 生成         /finish-branch
-                    ↓
-              /document-overview 生成（全程持续更新）
+产品厘清需求上传PRD
+开发团队读取PRD进入内部开发阶段
+测试团队根据PRD生成测试用例，上传用例
+开发团队根据测试上传的测试用例，PRD需求拆解等生成代码层测试用例并执行测试，上传测试报告
+测试团队根据开发上传的测试报告评审是否达成冒烟用例覆盖率，测试团队执行自己内部的测试流程，上传测试报告
+项目经理每日overview各团队开发的文档
 
-                                                              接口文档阶段
-                                                    ─────────────────────
-                                                    /rap2（独立使用，任意阶段均可调用）
-                                                    查询接口、生成前端代码、Mock 数据
-```
+### 需求孵化
+1. **需求澄清** — `/brainstorming` 探索用户意图、约束条件和成功标准，输出设计共识
+2. **生成 PRD** — `/document-pm 生成 "<需求描述>"` 基于澄清结果生成产品需求文档
+3. **提交 PRD** — `/document-pm 提交 <需求名> --paths <文件>` 推送到 Spec Doc 远程仓库
+
+### 功能设计
+1. **生成设计文档** — `/document-dev 创建 <需求名> 设计文档` 自动读取 PRD → 自动调用 writing-plans 生成实施计划
+2. **SDD开发** - 前端/后端团队开发工作流
+3. **提交设计文档** — `/document-dev 提交 <文档类型>` 阶段性推送计划、接口文档、测试报告至 Spec Doc
+
+### 质量保证
+1. **生成测试用例** — `/document-test 生成 <需求名> 测试用例` 基于 PRD + 设计文档生成测试用例，可自行修改驱动内部生成用例技能
+2. **自动化 QA** — 测试团队工作流
+3. **提交测试文档** — `/document-test 上传 <测试类型>` 推送测试用例和测试报告至 Spec Doc
+
+### 进度透明化（全程持续）
+1. **生成进度报告** — `/document-overview 播报 简洁|详细` 钉钉播报格式，每日更新
+2. **项目健康度** — `/document-overview 健康度` 多维度评估（进度/质量/风险/团队）
+
+### 复利工程
+1. **经验总结** — `/document-compound 生成` 自动收集所有文档，分析经验教训与可复用模式
+2. **提交知识库** — `/document-compound 提交` 沉淀到 `.sonli-spec-doc/knowledge-base/compound/`
+
+
 
 技能间依赖关系：
 
@@ -70,6 +83,7 @@ document-init
 独立技能（无强依赖，按需调用）：
     qa        ← 开发完成后触发，覆盖浏览器自动化 + 回归测试
     rap2      ← 接口定义稳定后调用，生成前端代码 / Mock 数据
+    superpowers  ← [superpowers 内部技能](http://172.16.100.5/root/spec-kit)
 ```
 
 ---

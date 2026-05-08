@@ -22,7 +22,7 @@ install_all: true
 | "提交代码审查" | `requesting-code-review` | 代码审查 = 领域技能 |
 | "帮我写个实施计划" | `writing-plans` | 计划编写 = 流程技能 |
 | "QA这个网站" | `qa` | 质量保障 = 领域技能 |
-| "部署到生产环境" | `ship` → `land-and-deploy` | 发布 = 流程技能链 |
+| "提交PR" | `requesting-code-review` | 提交PR = 代码审查流程 |
 
 <SUBAGENT-STOP>
 If you were dispatched as a subagent to execute a specific task, skip this skill.
@@ -131,7 +131,7 @@ When multiple skills could apply, use this order:
 | 设计文档 | `document-dev` | 内置 writing-plans 集成 |
 | 测试报告 | `document-test` | 测试用例+报告管理 |
 | 代码审查 | `requesting-code-review` | 派发审查子代理 |
-| 发布上线 | `ship` → `land-and-deploy` | 创建PR→合并部署 |
+| 提交PR | `requesting-code-review` | 派发审查子代理 |
 
 ### 意图关键词匹配规则
 
@@ -143,7 +143,7 @@ When multiple skills could apply, use this order:
 | 写/生成 设计文档/实施计划 | `document-dev` |
 | 写/生成 测试用例/测试报告 | `document-test` |
 | 代码审查/review | `requesting-code-review` |
-| 部署/发布/上线/ship | `ship` |
+| 提交PR/代码审查/review | `requesting-code-review` |
 | 经验总结/复盘 | `document-compound` |
 
 **关键规则**：`brainstorming` 是所有创意工作的前置技能。任何涉及"设计"、"创建"、"开发"的请求，都必须先调用 `brainstorming`。
