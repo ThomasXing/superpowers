@@ -42,6 +42,7 @@ _self_update() {
             echo -e "\033[0;32m  ✅ 已更新至 v${template_version}，重新执行\033[0m"
             echo ""
             exec bash "${BASH_SOURCE[0]}" "$@"
+            return 0  # exec 失败时兜底，不阻断主流程
             ;;
     esac
 }
