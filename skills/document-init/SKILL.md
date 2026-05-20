@@ -116,6 +116,10 @@ description: Use when setting up the doc directory structure in the repository f
 
 ### GitLab Token 权限要求
 
+> ⚠️ **内网环境限定**：sync 脚本使用 `http://`（非 HTTPS）传输 Token 和文档内容，仅适用于 `172.16.x.x` 内部网络。若部署到公网环境，必须将 config.yaml 中的 `http_url` 改为 `https://` 并确保证书有效。
+>
+> Token 通过 `curl --header "PRIVATE-TOKEN: ..."` 传递，在部分系统上可能被 `ps aux` 暴露。内网单用户开发机环境可接受，共享服务器环境需额外防护（如使用 `curl -H @<(printf 'PRIVATE-TOKEN: %s' "$TOKEN")` 方式规避进程列表泄露）。
+
 sync-to-remote.sh 和 sync-from-remote.sh 共用 config.yaml 中的 Token，需具备以下 GitLab 权限：
 
 | 权限 | 用途 |

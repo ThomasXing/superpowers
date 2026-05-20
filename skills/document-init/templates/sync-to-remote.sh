@@ -55,6 +55,9 @@ _self_update "$@"
 
 set -euo pipefail
 
+# ── 依赖检查 ─────────────────────────────────────────────
+command -v python3 >/dev/null 2>&1 || { echo "❌ 缺少依赖: python3 未安装或不在 PATH 中"; exit 1; }
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${SCRIPT_DIR}/../config.yaml"
 
@@ -265,7 +268,8 @@ fi
 
 # 收集本地文件到临时文件（格式: ACTION|REMOTE_PATH|LOCAL_PATH）
 TEMP_MANIFEST=$(mktemp)
-trap "rm -f $TEMP_MANIFEST" EXIT
+_cleanup_temp() { rm -f "$TEMP_MANIFEST" "$COMMIT_JSON_TEMP" "$FALLBACK_JSON_TEMP" 2>/dev/null; }
+trap _cleanup_temp EXIT
 
 collect_files() {
     local local_subpath="$1"

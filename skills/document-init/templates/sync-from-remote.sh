@@ -49,6 +49,9 @@ _self_update "$@"
 
 set -euo pipefail
 
+# ── 依赖检查 ─────────────────────────────────────────────
+command -v python3 >/dev/null 2>&1 || { echo "❌ 缺少依赖: python3 未安装或不在 PATH 中"; exit 1; }
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${SCRIPT_DIR}/../config.yaml"
 
