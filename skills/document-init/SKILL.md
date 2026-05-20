@@ -88,8 +88,8 @@ description: Use when setting up the doc directory structure in the repository f
 5. **目录创建**：创建 `.sonli-spec-doc/<活跃计划>/` 下的完整目录结构
 
 6. **同步脚本部署**：从技能模板目录 `skills/document-init/templates/` 复制脚本到 `.sonli-spec-doc/scripts/`：
-   - `sync-to-remote.sh`：推送本地文档至 Spec Doc 远程仓库（HTTP+Token 鉴权） — 模板：[templates/sync-to-remote.sh](file:///Users/thomasxing/workspace/2026/3月份计划/AI研发/spec-kit/skills/document-init/templates/sync-to-remote.sh)
-   - `sync-from-remote.sh`：从 Spec Doc 远程仓库拉取最新文档到本地（GitLab API v4） — 模板：[templates/sync-from-remote.sh](file:///Users/thomasxing/workspace/2026/3月份计划/AI研发/spec-kit/skills/document-init/templates/sync-from-remote.sh)
+   - `sync-to-remote.sh`：推送本地文档至 Spec Doc 远程仓库（HTTP+Token 鉴权） — 模板：[templates/sync-to-remote.sh](./templates/sync-to-remote.sh)
+   - `sync-from-remote.sh`：从 Spec Doc 远程仓库拉取最新文档到本地（GitLab API v4） — 模板：[templates/sync-from-remote.sh](./templates/sync-from-remote.sh)
 
 7. **幂等检查**：若目录已存在则跳过目录创建，仅更新 config.yaml 中的 active_plan
 
