@@ -15,11 +15,11 @@
 # ── 版本自检（在 set -e 之前，优雅降级）─────────────────
 SCRIPT_VERSION="3.1.0"
 _self_update() {
-    local script_name repo_root template template_version newer
+    local script_dir script_name template template_version newer
     script_name="$(basename "${BASH_SOURCE[0]}")"
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || return 0
-    # 从 Qoder 运行时目录查找模板
-    template="${repo_root}/.qoder/skills/document-init/templates/${script_name}"
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # 脚本在 .sonli-spec-doc/scripts/ → ../../ → 项目根 → .qoder/skills/
+    template="${script_dir}/../../.qoder/skills/document-init/templates/${script_name}"
     [ -f "$template" ] || return 0
     template_version=$(grep -m1 '^SCRIPT_VERSION=' "$template" 2>/dev/null | cut -d'"' -f2)
     [ -n "$template_version" ] || return 0
