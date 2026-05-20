@@ -60,6 +60,12 @@ description: Use when setting up the doc directory structure in the repository f
 
 # 查看当前活跃计划
 /document-init plan current
+
+# 更新技能（skill 源 → 运行时 + 脚本部署，一键同步）
+/document-init update
+
+# 强制覆盖（即使版本号相同）
+/document-init update --force
 ```
 
 ## 初始化执行步骤
@@ -81,11 +87,20 @@ description: Use when setting up the doc directory structure in the repository f
 
 5. **目录创建**：创建 `.sonli-spec-doc/<活跃计划>/` 下的完整目录结构
 
-6. **同步脚本部署**：将 `sync-to-remote.sh` 和 `sync-from-remote.sh` 写入 `.sonli-spec-doc/scripts/`：
-   - `sync-to-remote.sh`：推送本地文档至 Spec Doc 远程仓库（HTTP+Token 鉴权）
-   - `sync-from-remote.sh`：从 Spec Doc 远程仓库拉取最新文档到本地（GitLab API v4）
+6. **同步脚本部署**：从技能模板目录 `skills/document-init/templates/` 复制脚本到 `.sonli-spec-doc/scripts/`：
+   - `sync-to-remote.sh`：推送本地文档至 Spec Doc 远程仓库（HTTP+Token 鉴权） — 模板：[templates/sync-to-remote.sh](file:///Users/thomasxing/workspace/2026/3月份计划/AI研发/spec-kit/skills/document-init/templates/sync-to-remote.sh)
+   - `sync-from-remote.sh`：从 Spec Doc 远程仓库拉取最新文档到本地（GitLab API v4） — 模板：[templates/sync-from-remote.sh](file:///Users/thomasxing/workspace/2026/3月份计划/AI研发/spec-kit/skills/document-init/templates/sync-from-remote.sh)
 
 7. **幂等检查**：若目录已存在则跳过目录创建，仅更新 config.yaml 中的 active_plan
+
+8. **脚本版本自检与技能更新机制**：
+   - 每个同步脚本头部内嵌 `SCRIPT_VERSION` 标记，启动时自动比对模板版本
+   - 若模板版本号 > 本地脚本版本号 → 提示用户确认是否更新
+   - 用户确认后自动 `cp` 模板覆盖本地脚本并 `exec` 重执行
+   - `/document-init update` 一键完成全链路同步：
+     1. 若 `skills/document-init/` 存在（git 源）→ 复制 SKILL.md + templates/ 到 `.qoder/skills/document-init/`（运行时）
+     2. 复制 templates/*.sh → `.sonli-spec-doc/scripts/`（本地工作区）
+     3. `--force` 强制覆盖，即使源与目标版本号相同
 
 ### ❗ 配置文件安全原则（重要）
 
@@ -184,7 +199,10 @@ mkdir -p ".sonli-spec-doc/knowledge-base/compound"
 mkdir -p ".sonli-spec-doc/scripts"
 
 # ── 6. 同步脚本部署 ──
-# sync-to-remote.sh 和 sync-from-remote.sh 由 AI 根据模板写入 .sonli-spec-doc/scripts/
+# 从技能模板目录复制到 .sonli-spec-doc/scripts/
+cp "$SKILL_DIR/templates/sync-to-remote.sh" .sonli-spec-doc/scripts/
+cp "$SKILL_DIR/templates/sync-from-remote.sh" .sonli-spec-doc/scripts/
+chmod +x .sonli-spec-doc/scripts/*.sh
 
 echo "✅ document-init 完成 — 活跃计划: ${PLAN} | Spec Doc: ${HOST} | Token: 已验证"
 ```
@@ -240,6 +258,7 @@ gitlab:
 - [ ] **★ 月度计划配置**：`directories.active_plan` 已设置
 - [ ] 目录结构创建：`.sonli-spec-doc/<计划>/pm/prd/` 等子目录已建立
 - [ ] 同步脚本就绪：`.sonli-spec-doc/scripts/sync-to-remote.sh` 和 `sync-from-remote.sh` 可用
+- [ ] 脚本版本自检：`grep SCRIPT_VERSION .sonli-spec-doc/scripts/*.sh` 确认版本标记存在
 
 ## 与子技能的契约（重要）
 
@@ -260,13 +279,24 @@ gitlab:
 
 ## 目录结构规范
 
-初始化后在 `.sonli-spec-doc/` 中创建的目录结构（不入主项目版本库）：
+### 技能模板目录（skills/document-init/）
+
+```
+skills/document-init/
+├── SKILL.md                       # 技能定义文档
+└── templates/                     # ★ 脚本模板（初始化时复制到目标位置）
+    ├── sync-to-remote.sh          # Spec Doc 远程推送脚本模板
+    └── sync-from-remote.sh        # Spec Doc 远程拉取脚本模板
+```
+
+### 初始化输出（.sonli-spec-doc/，不入主项目版本库）
+
 ```
 .sonli-spec-doc/
 ├── config.yaml                    # 全局配置（gitlab 远程仓库 + token + active_plan）
 ├── scripts/
-│   ├── sync-to-remote.sh          # Spec Doc 远程推送脚本（HTTP+Token 鉴权）
-│   └── sync-from-remote.sh        # Spec Doc 远程拉取脚本（GitLab API v4）
+│   ├── sync-to-remote.sh          # Spec Doc 远程推送脚本（从 templates/ 复制）
+│   └── sync-from-remote.sh        # Spec Doc 远程拉取脚本（从 templates/ 复制）
 ├── 2026年4月月度计划/              # ★ 活跃月度计划
 │   ├── pm/
 │   │   └── prd/                   # PRD 文档
