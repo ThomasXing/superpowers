@@ -15,23 +15,47 @@
 # ── 版本自检（在 set -e 之前，优雅降级）─────────────────
 SCRIPT_VERSION="3.1.0"
 _self_update() {
-    local script_dir script_name template template_version newer
+    local script_name script_dir doc_root config hostname token spec_kit_repo spec_kit_ref
+    local project_path file_path remote_url template_version newer
+
     script_name="$(basename "${BASH_SOURCE[0]}")"
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    # 脚本在 .sonli-spec-doc/scripts/ → ../../ → 项目根 → .qoder/skills/
-    template="${script_dir}/../../.qoder/skills/document-init/templates/${script_name}"
-    [ -f "$template" ] || return 0
-    template_version=$(grep -m1 '^SCRIPT_VERSION=' "$template" 2>/dev/null | cut -d'"' -f2)
+    doc_root="${script_dir}/.."
+    config="${doc_root}/config.yaml"
+    [ -f "$config" ] || return 0
+
+    # 读取 config.yaml 配置
+    hostname=$(sed -n '/^gitlab:/,/^[a-z]/p' "$config" 2>/dev/null | grep -m1 'hostname:' | sed -n 's/.*hostname: *"\([^"]*\)"/\1/p')
+    token=$(sed -n '/^gitlab:/,/^[a-z]/p' "$config" 2>/dev/null | grep -m1 'token:' | sed -n 's/.*token: *"\([^"]*\)"/\1/p')
+    spec_kit_repo=$(sed -n '/^spec_kit:/,/^[a-z]/p' "$config" 2>/dev/null | grep -m1 'repo_url:' | sed -n 's/.*repo_url: *"\([^"]*\)"/\1/p')
+    spec_kit_ref=$(sed -n '/^spec_kit:/,/^[a-z]/p' "$config" 2>/dev/null | grep -m1 'ref:' | sed -n 's/.*ref: *"\([^"]*\)"/\1/p')
+
+    [ -n "$hostname" ] || return 0
+    [ -n "$token" ] || return 0
+    [ -n "$spec_kit_repo" ] || return 0
+    [ -n "$spec_kit_ref" ] || spec_kit_ref="main"
+
+    # http://HOST/root/spec-kit.git → root%2Fspec-kit
+    project_path=$(echo "$spec_kit_repo" | sed -n 's|.*://[^/]*/\(.*\)\.git|\1|p' | sed 's|/|%2F|g')
+    [ -n "$project_path" ] || return 0
+
+    # 模板文件路径: skills/document-init/templates/<script_name>
+    file_path="skills%2Fdocument-init%2Ftemplates%2F${script_name}"
+    remote_url="http://${hostname}/api/v4/projects/${project_path}/repository/files/${file_path}/raw?ref=${spec_kit_ref}"
+
+    # 获取远程最新版本号
+    template_version=$(curl -s --connect-timeout 5 --header "PRIVATE-TOKEN: ${token}" "$remote_url" 2>/dev/null | grep -m1 '^SCRIPT_VERSION=' | cut -d'"' -f2)
     [ -n "$template_version" ] || return 0
     [ "$template_version" != "$SCRIPT_VERSION" ] || return 0
-    # 语义版本比较：模板版本 > 本地版本才提示
+
+    # 语义版本比较：远程版本 > 本地版本才提示
     newer=$(printf '%s\n%s\n' "$SCRIPT_VERSION" "$template_version" | sort -V | tail -1 2>/dev/null)
     [ "$newer" = "$template_version" ] || return 0
 
     echo ""
     echo -e "\033[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\033[1;33m  🔄 ${script_name} 有可用更新\033[0m"
-    echo -e "\033[0;37m  本地: v${SCRIPT_VERSION}  →  模板: v${template_version}\033[0m"
+    echo -e "\033[1;33m  🔄 ${script_name} 有可用更新 (spec-kit 远程仓库)\033[0m"
+    echo -e "\033[0;37m  本地: v${SCRIPT_VERSION}  →  远程: v${template_version}\033[0m"
     echo -e "\033[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo ""
     echo -n "  是否更新？[Y/n] "
@@ -42,8 +66,8 @@ _self_update() {
             echo ""
             ;;
         *)
-            echo -e "\033[0;36m  📥 正在更新...\033[0m"
-            cp "$template" "${BASH_SOURCE[0]}" || { echo -e "\033[0;31m  ❌ 更新失败\033[0m"; return 0; }
+            echo -e "\033[0;36m  📥 正在从 spec-kit 远程仓库下载...\033[0m"
+            curl -s --connect-timeout 10 --header "PRIVATE-TOKEN: ${token}" "$remote_url" -o "${BASH_SOURCE[0]}" 2>/dev/null || { echo -e "\033[0;31m  ❌ 下载失败\033[0m"; return 0; }
             echo -e "\033[0;32m  ✅ 已更新至 v${template_version}，重新执行\033[0m"
             echo ""
             exec bash "${BASH_SOURCE[0]}" "$@"

@@ -181,6 +181,9 @@ gitlab:
   http_url: "http://${HOST}/root/spec-doc"
   hostname: "${HOST}"
   token: "${GITLAB_TOKEN}"
+spec_kit:
+  repo_url: "http://${HOST}/root/spec-kit.git"
+  ref: "main"
 directories:
   active_plan: "${PLAN}"
   plans:
@@ -213,7 +216,7 @@ echo "✅ document-init 完成 — 活跃计划: ${PLAN} | Spec Doc: ${HOST} | T
 
 ## Spec Doc 远程仓库配置说明
 
-### config.yaml 中的 gitlab 配置段
+### config.yaml 中的 gitlab 配置段（Spec Doc 远程仓库）
 
 ```yaml
 gitlab:
@@ -222,6 +225,16 @@ gitlab:
   hostname: "172.16.100.5"                         # GitLab 主机
   token: "glpat-xxxxxxxxxxxx"                       # ★ GitLab Personal Access Token（HTTP 鉴权必需）
 ```
+
+### config.yaml 中的 spec_kit 配置段（技能模板远程仓库）
+
+```yaml
+spec_kit:
+  repo_url: "http://172.16.100.5/root/spec-kit.git"  # spec-kit 技能仓库地址
+  ref: "main"                                          # 分支（通常为 main）
+```
+
+> `spec_kit` 段供脚本 `_self_update()` 版本自检使用：通过 GitLab API 读取远程 spec-kit 仓库中 `skills/document-init/templates/` 下的最新模板版本号，与本地脚本 `SCRIPT_VERSION` 比对后提示更新。复用 `gitlab.token` 鉴权，无需额外 Token。
 
 ### 双重验证（初始化时强制执行）
 
@@ -259,6 +272,7 @@ gitlab:
 - [ ] **★ Spec Doc 远程仓库 SSH 验证**：`ssh -T git@<hostname>` 成功或已知降级
 - [ ] **★ GitLab Token 验证**：`curl --header "PRIVATE-TOKEN: <token>" "http://<hostname>/api/v4/user"` 返回 200
 - [ ] 配置文件创建：`.sonli-spec-doc/config.yaml` 已存在，含 `gitlab.token` 非空
+- [ ] **★ spec_kit 配置**：`spec_kit.repo_url` 指向 spec-kit 远程仓库，`ref` 为有效分支名
 - [ ] **★ 月度计划配置**：`directories.active_plan` 已设置
 - [ ] 目录结构创建：`.sonli-spec-doc/<计划>/pm/prd/` 等子目录已建立
 - [ ] 同步脚本就绪：`.sonli-spec-doc/scripts/sync-to-remote.sh` 和 `sync-from-remote.sh` 可用
